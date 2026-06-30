@@ -1,0 +1,2224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Loraine Cocina</title>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&display=swap');
+
+:root {
+  --bg:        #0c0c0c;
+  --surface:   #161616;
+  --surface2:  #1f1f1f;
+  --border:    #2a2a2a;
+  --border2:   #333;
+  --gold:      #c9a84c;
+  --gold-dim:  rgba(201,168,76,0.12);
+  --gold-glow: rgba(201,168,76,0.25);
+  --text:      #f0ebe0;
+  --text-dim:  rgba(240,235,224,0.55);
+  --text-mute: rgba(240,235,224,0.3);
+  --red:       #c0392b;
+  --red-dim:   rgba(192,57,43,0.15);
+  --green:     #27ae60;
+  --green-dim: rgba(39,174,96,0.12);
+  --blue:      #2980b9;
+  --blue-dim:  rgba(41,128,185,0.12);
+  --display:   'Playfair Display', serif;
+  --title:     'Bebas Neue', sans-serif;
+  --body:      'Inter', sans-serif;
+  --radius:    6px;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { font-size:16px; }
+body { background:var(--bg); color:var(--text); font-family:var(--body); min-height:100vh; overflow-x:hidden; }
+
+/* ── TOPBAR ── */
+.topbar {
+  position:sticky; top:0; z-index:200;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center;
+  padding:0 16px; height:52px; gap:12px;
+}
+.topbar-brand {
+  font-family:var(--title);
+  font-size:1.3rem; letter-spacing:3px;
+  color:var(--gold); white-space:nowrap;
+}
+.topbar-day {
+  font-size:0.7rem; color:var(--text-mute);
+  letter-spacing:1px; text-transform:uppercase;
+  margin-left:auto; white-space:nowrap;
+}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  position:fixed; bottom:0; left:0; right:0; z-index:200;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  display:flex;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.bnav-btn {
+  flex:1; padding:10px 4px 8px;
+  background:none; border:none;
+  display:flex; flex-direction:column;
+  align-items:center; gap:3px;
+  cursor:pointer; transition:opacity 0.15s;
+}
+.bnav-btn .icon { font-size:1.3rem; }
+.bnav-btn .label {
+  font-size:0.6rem; font-weight:500;
+  letter-spacing:1px; text-transform:uppercase;
+  color:var(--text-mute); transition:color 0.15s;
+}
+.bnav-btn.active .label { color:var(--gold); }
+.bnav-btn.active .icon { filter:drop-shadow(0 0 6px var(--gold-glow)); }
+
+/* ── PAGES ── */
+.page { display:none; padding:16px 16px 90px; max-width:600px; margin:0 auto; }
+.page.active { display:block; }
+
+/* ── TYPOGRAPHY ── */
+.page-title {
+  font-family:var(--title);
+  font-size:1.6rem; letter-spacing:3px;
+  color:var(--gold); margin-bottom:20px;
+  display:flex; align-items:center; gap:10px;
+}
+.section-label {
+  font-size:0.65rem; font-weight:600;
+  letter-spacing:2px; text-transform:uppercase;
+  color:var(--text-mute); margin-bottom:10px;
+  margin-top:20px;
+}
+.section-label:first-child { margin-top:0; }
+
+/* ── CARDS ── */
+.card {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px;
+  margin-bottom:10px;
+}
+.card-row {
+  display:flex; align-items:center;
+  justify-content:space-between; gap:12px;
+}
+.card-title { font-weight:600; font-size:0.92rem; }
+.card-sub { font-size:0.75rem; color:var(--text-dim); margin-top:2px; }
+
+/* ── DASHBOARD ── */
+.dash-grid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:10px; margin-bottom:16px;
+}
+.dash-box {
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:14px 12px;
+}
+.dash-box.full { grid-column:1/-1; }
+.dash-val {
+  font-family:var(--title);
+  font-size:1.7rem; letter-spacing:1px;
+  line-height:1;
+}
+.dash-val.gold { color:var(--gold); }
+.dash-val.green { color:var(--green); }
+.dash-val.red { color:var(--red); }
+.dash-val.blue { color:var(--blue); }
+.dash-lbl {
+  font-size:0.65rem; letter-spacing:1.5px;
+  text-transform:uppercase; color:var(--text-mute);
+  margin-top:5px;
+}
+
+.alert-row {
+  background:var(--red-dim);
+  border:1px solid var(--red);
+  border-radius:var(--radius);
+  padding:10px 14px;
+  margin-bottom:8px;
+  font-size:0.82rem;
+  display:flex; align-items:center; gap:8px;
+}
+
+.alert-counter {
+  width:100%;
+  background:var(--red-dim);
+  border:1px solid var(--red);
+  border-radius:var(--radius);
+  padding:12px 14px;
+  font-size:0.84rem; color:var(--text);
+  display:flex; align-items:center; gap:8px;
+  cursor:pointer; font-family:var(--body);
+  text-align:left;
+}
+
+/* ── FORMS ── */
+.field { margin-bottom:12px; }
+.field label {
+  display:block;
+  font-size:0.65rem; font-weight:600;
+  letter-spacing:1.5px; text-transform:uppercase;
+  color:var(--text-mute); margin-bottom:5px;
+}
+.field input, .field select, .field textarea {
+  width:100%;
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  color:var(--text);
+  padding:10px 12px;
+  font-family:var(--body); font-size:0.9rem;
+  border-radius:var(--radius); outline:none;
+  transition:border-color 0.2s;
+  -webkit-appearance:none;
+}
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color:var(--gold);
+}
+.field select option { background:var(--surface2); }
+.field textarea { resize:vertical; min-height:60px; }
+.field-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.field-row-3 { display:grid; grid-template-columns:1fr 1fr auto; gap:10px; align-items:end; }
+
+/* ── BUTTONS ── */
+.btn {
+  padding:11px 18px;
+  font-family:var(--body); font-size:0.78rem;
+  font-weight:600; letter-spacing:1.5px;
+  text-transform:uppercase; border-radius:var(--radius);
+  border:none; cursor:pointer;
+  display:inline-flex; align-items:center;
+  justify-content:center; gap:6px;
+  transition:all 0.15s; white-space:nowrap;
+}
+.btn-gold { background:var(--gold); color:#0c0c0c; }
+.btn-gold:hover { background:#dbb95a; }
+.btn-green { background:var(--green); color:#fff; }
+.btn-green:hover { background:#229954; }
+.btn-red { background:transparent; border:1px solid var(--red); color:var(--red); }
+.btn-red:hover { background:var(--red); color:#fff; }
+.btn-ghost { background:transparent; border:1px solid var(--border2); color:var(--text-dim); }
+.btn-ghost:hover { border-color:var(--gold); color:var(--gold); }
+.btn-full { width:100%; }
+.btn-sm { padding:7px 12px; font-size:0.7rem; }
+
+/* ── BADGE ── */
+.badge {
+  font-size:0.62rem; font-weight:600;
+  letter-spacing:1px; text-transform:uppercase;
+  padding:3px 8px; border-radius:20px;
+  white-space:nowrap;
+}
+.badge-gold { background:var(--gold-dim); color:var(--gold); border:1px solid rgba(201,168,76,0.3); }
+.badge-green { background:var(--green-dim); color:var(--green); border:1px solid rgba(39,174,96,0.3); }
+.badge-red { background:var(--red-dim); color:#e74c3c; border:1px solid rgba(192,57,43,0.3); }
+.badge-blue { background:var(--blue-dim); color:var(--blue); border:1px solid rgba(41,128,185,0.3); }
+
+/* ── NOTIF ── */
+.notif {
+  padding:10px 14px; border-radius:var(--radius);
+  font-size:0.8rem; margin-bottom:12px;
+  display:none; animation:fadeIn 0.2s;
+}
+.notif.show-green { display:block; background:var(--green-dim); color:var(--green); border:1px solid rgba(39,174,96,0.4); }
+.notif.show-red { display:block; background:var(--red-dim); color:#e74c3c; border:1px solid rgba(192,57,43,0.4); }
+.notif.show-gold { display:block; background:var(--gold-dim); color:var(--gold); border:1px solid rgba(201,168,76,0.4); }
+@keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+
+/* ── DIVIDER ── */
+hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
+
+/* ── INGREDIENT ROW ── */
+.ing-row {
+  display:flex; align-items:center; gap:8px;
+  padding:10px 12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  margin-bottom:6px;
+}
+.ing-row .ing-name { flex:1; font-size:0.88rem; font-weight:500; }
+.ing-row .ing-stock { font-size:0.75rem; color:var(--text-dim); }
+.ing-row .ing-price { font-family:var(--title); font-size:1.1rem; color:var(--gold); }
+.ing-row.low-stock { border-color:var(--red); }
+.ing-row.low-stock .ing-stock { color:#e74c3c; }
+
+/* ── RECIPE INGREDIENT LINE ── */
+.rec-ing-line {
+  display:flex; align-items:center; gap:8px;
+  margin-bottom:8px;
+}
+.rec-ing-line select { flex:2; }
+.rec-ing-line input { flex:1; }
+.rec-ing-line span { font-size:0.8rem; color:var(--text-mute); min-width:30px; }
+
+/* ── PRICE/MARGIN CALC ── */
+.calc-box {
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius:var(--radius);
+  padding:14px; margin-top:12px;
+}
+.calc-row {
+  display:flex; align-items:center;
+  justify-content:space-between; gap:10px;
+  margin-bottom:8px;
+}
+.calc-row:last-child { margin-bottom:0; }
+.calc-label { font-size:0.72rem; color:var(--text-dim); }
+.calc-val { font-family:var(--title); font-size:1.2rem; }
+.calc-val.gold { color:var(--gold); }
+.calc-val.green { color:var(--green); }
+.calc-val.red { color:var(--red); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,0.88); z-index:500;
+  align-items:flex-end; justify-content:center;
+}
+.modal-overlay.open { display:flex; }
+.modal-box {
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:12px 12px 0 0;
+  padding:24px 20px 36px;
+  width:100%; max-width:600px;
+  max-height:90vh; overflow-y:auto;
+  animation:slideUp 0.25s ease;
+}
+@keyframes slideUp { from { transform:translateY(40px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+.modal-title {
+  font-family:var(--title);
+  font-size:1.4rem; letter-spacing:2px;
+  color:var(--gold); margin-bottom:18px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.modal-close { background:none; border:none; color:var(--text-dim); font-size:1.2rem; cursor:pointer; }
+
+/* ── VENTA TIPO ── */
+.venta-split {
+  display:grid; grid-template-columns:1fr 1fr 1fr;
+  gap:8px; margin-bottom:12px;
+}
+.venta-split-field label { font-size:0.6rem; }
+
+.pago-metodos {
+  display:grid; grid-template-columns:1fr 1fr 1fr;
+  gap:8px; margin-bottom:10px;
+}
+.pago-btn {
+  background:var(--surface);
+  border:1px solid var(--border2);
+  color:var(--text-dim);
+  border-radius:var(--radius);
+  padding:14px 6px;
+  display:flex; flex-direction:column;
+  align-items:center; gap:5px;
+  font-family:var(--body); font-size:0.7rem;
+  font-weight:600; letter-spacing:0.5px;
+  cursor:pointer; transition:all 0.15s;
+}
+.pago-btn .pago-icon { font-size:1.3rem; }
+.pago-btn.active {
+  border-color:var(--gold);
+  background:var(--gold-dim);
+  color:var(--gold);
+}
+.btn-link-dividir {
+  background:none; border:none;
+  color:var(--text-mute);
+  font-size:0.72rem; text-decoration:underline;
+  cursor:pointer; display:block;
+  margin:0 auto 16px; padding:4px;
+}
+
+/* ── TIPO TOGGLE (comida/empaque) ── */
+.tipo-toggle {
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+}
+.tipo-btn {
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  color:var(--text-dim);
+  padding:10px 8px; border-radius:var(--radius);
+  font-family:var(--body); font-size:0.8rem; font-weight:600;
+  cursor:pointer; transition:all 0.15s;
+}
+.tipo-btn.active { border-color:var(--gold); background:var(--gold-dim); color:var(--gold); }
+
+.filtro-tipo {
+  display:flex; gap:6px; margin-bottom:12px; overflow-x:auto;
+}
+.filtro-tipo-btn {
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  color:var(--text-dim);
+  padding:6px 12px; border-radius:20px;
+  font-family:var(--body); font-size:0.72rem; font-weight:600;
+  cursor:pointer; white-space:nowrap; transition:all 0.15s;
+}
+.filtro-tipo-btn.active { border-color:var(--gold); background:var(--gold-dim); color:var(--gold); }
+
+/* ── MENU DIA ── */
+.menu-item-row {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  margin-bottom:6px;
+}
+.menu-item-row .mi-name { flex:1; font-size:0.88rem; font-weight:500; }
+.menu-item-row .mi-porciones { font-size:0.78rem; color:var(--gold); }
+.menu-item-row .mi-costo { font-size:0.75rem; color:var(--text-dim); }
+
+/* ── EMPTY ── */
+.empty {
+  text-align:center; padding:40px 20px;
+  color:var(--text-mute);
+}
+.empty .e-icon { font-size:2rem; display:block; margin-bottom:10px; }
+.empty p { font-size:0.82rem; letter-spacing:0.5px; }
+
+/* ── TABS ── */
+.tabs { display:flex; border-bottom:1px solid var(--border); margin-bottom:18px; }
+.tab-btn {
+  flex:1; padding:10px 8px;
+  background:none; border:none;
+  font-family:var(--body); font-size:0.7rem;
+  font-weight:600; letter-spacing:1.5px;
+  text-transform:uppercase; color:var(--text-mute);
+  cursor:pointer; border-bottom:2px solid transparent;
+  transition:all 0.15s;
+}
+.tab-btn.active { color:var(--gold); border-bottom-color:var(--gold); }
+.tab-panel { display:none; }
+.tab-panel.active { display:block; }
+
+/* ── UPLOAD AREA ── */
+.upload-area {
+  border:2px dashed var(--border2);
+  border-radius:var(--radius);
+  padding:20px; text-align:center;
+  cursor:pointer; position:relative;
+  transition:border-color 0.2s;
+}
+.upload-area:hover { border-color:var(--gold); }
+.upload-area input[type=file] {
+  position:absolute; inset:0; opacity:0;
+  cursor:pointer; width:100%; height:100%;
+}
+.upload-area p { font-size:0.8rem; color:var(--text-mute); pointer-events:none; }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+
+/* ── SYNC INDICATOR ── */
+.sync-dot {
+  width:7px; height:7px; border-radius:50%;
+  background:var(--green); margin-left:auto;
+  box-shadow:0 0 6px var(--green);
+  flex-shrink:0;
+}
+.sync-dot.offline { background:var(--text-mute); box-shadow:none; }
+.sync-dot.syncing { background:var(--gold); box-shadow:0 0 6px var(--gold); animation:pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-brand">🍽 LORAINE</div>
+  <div class="topbar-day" id="topbar-fecha"></div>
+  <div class="sync-dot" id="sync-dot" title="Sincronizado"></div>
+</div>
+
+<!-- ══════════════ PÁGINA: DASHBOARD ══════════════ -->
+<div class="page active" id="page-dashboard">
+  <div class="section-label">Resumen de hoy</div>
+  <div class="dash-grid">
+    <div class="dash-box">
+      <div class="dash-val green" id="d-ventas">RD$0</div>
+      <div class="dash-lbl">Vendido</div>
+    </div>
+    <div class="dash-box">
+      <div class="dash-val red" id="d-gastos">RD$0</div>
+      <div class="dash-lbl">Gastado</div>
+    </div>
+    <div class="dash-box">
+      <div class="dash-val gold" id="d-ganancia">RD$0</div>
+      <div class="dash-lbl">Ganancia neta</div>
+    </div>
+    <div class="dash-box">
+      <div class="dash-val blue" id="d-porciones">0</div>
+      <div class="dash-lbl">Porciones</div>
+    </div>
+    <div class="dash-box full">
+      <div style="display:flex;gap:16px;">
+        <div style="flex:1;">
+          <div class="dash-val" id="d-efectivo" style="font-size:1.2rem;color:var(--text);">RD$0</div>
+          <div class="dash-lbl">Efectivo</div>
+        </div>
+        <div style="flex:1;">
+          <div class="dash-val" id="d-transfer" style="font-size:1.2rem;color:var(--text);">RD$0</div>
+          <div class="dash-lbl">Transferencia</div>
+        </div>
+        <div style="flex:1;">
+          <div class="dash-val" id="d-credito" style="font-size:1.2rem;color:var(--red);">RD$0</div>
+          <div class="dash-lbl">Crédito</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Alertas de stock</div>
+  <div id="dash-alertas">
+    <div class="empty"><span class="e-icon">✅</span><p>Todo el inventario está bien.</p></div>
+  </div>
+
+  <div class="section-label">Menú activo hoy</div>
+  <div id="dash-menu">
+    <div class="empty"><span class="e-icon">🍽</span><p>No hay menú configurado para hoy.</p></div>
+  </div>
+</div>
+
+<!-- ══════════════ PÁGINA: INGREDIENTES ══════════════ -->
+<div class="page" id="page-ingredientes">
+  <div class="page-title">📦 Ingredientes</div>
+  <div id="notif-ing" class="notif"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('ing','biblioteca',this)">Biblioteca</button>
+    <button class="tab-btn" onclick="switchTab('ing','agregar',this)">+ Agregar</button>
+    <button class="tab-btn" onclick="switchTab('ing','excel',this)">📊 Excel</button>
+  </div>
+
+  <!-- TAB: BIBLIOTECA -->
+  <div class="tab-panel active" id="ing-tab-biblioteca">
+    <div class="filtro-tipo" id="filtro-tipo-ing">
+      <button type="button" class="filtro-tipo-btn active" data-filtro="todos" onclick="filtrarPorTipo('todos')">Todos</button>
+      <button type="button" class="filtro-tipo-btn" data-filtro="comida" onclick="filtrarPorTipo('comida')">🍗 Comida</button>
+      <button type="button" class="filtro-tipo-btn" data-filtro="empaque" onclick="filtrarPorTipo('empaque')">🥡 Empaque</button>
+    </div>
+    <div id="ing-search-wrap" style="margin-bottom:12px;">
+      <input type="search" placeholder="Buscar ingrediente..." id="ing-search"
+        oninput="filtrarIngredientes()" style="width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 12px;border-radius:var(--radius);font-family:var(--body);font-size:0.88rem;outline:none;">
+    </div>
+    <div id="ing-lista"></div>
+  </div>
+
+  <!-- TAB: AGREGAR -->
+  <div class="tab-panel" id="ing-tab-agregar">
+    <div class="field">
+      <label>Tipo</label>
+      <div class="tipo-toggle">
+        <button type="button" class="tipo-btn active" data-tipo="comida" onclick="seleccionarTipoIng('comida')">🍗 Comida</button>
+        <button type="button" class="tipo-btn" data-tipo="empaque" onclick="seleccionarTipoIng('empaque')">🥡 Empaque</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Nombre del ingrediente</label>
+      <input type="text" id="ing-nombre" placeholder="Ej: Pollo">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Categoría de unidad</label>
+        <select id="ing-cat" onchange="actualizarUnidades()">
+          <option value="solido">Sólido (peso)</option>
+          <option value="liquido">Líquido (volumen)</option>
+          <option value="contable">Contable (unidades)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Unidad de compra</label>
+        <select id="ing-unidad" onchange="0"></select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Cantidad que compras</label>
+        <input type="number" id="ing-cant-compra" placeholder="Ej: 5" step="0.01">
+      </div>
+      <div class="field">
+        <label>Precio de esa cantidad</label>
+        <input type="number" id="ing-precio" placeholder="RD$" step="0.01">
+      </div>
+    </div>
+    <div class="field">
+      <label>Stock inicial (en tu unidad)</label>
+      <input type="number" id="ing-stock-ini" placeholder="0" step="0.01">
+    </div>
+    <div class="field">
+      <label>Stock mínimo (alerta)</label>
+      <input type="number" id="ing-stock-min" placeholder="Ej: 1" step="0.01">
+    </div>
+    <button class="btn btn-gold btn-full" onclick="guardarIngrediente()">Guardar ingrediente</button>
+  </div>
+
+  <!-- TAB: EXCEL -->
+  <div class="tab-panel" id="ing-tab-excel">
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:0.82rem;color:var(--text-dim);line-height:1.6;">
+        Tu Excel debe tener estas columnas en orden:<br>
+        <strong style="color:var(--gold);">A: Nombre · B: Tipo · C: Categoría · D: Unidad · E: Cant.compra · F: Precio · G: Stock · H: Stock mínimo</strong><br><br>
+        Tipo: <em>comida</em> o <em>empaque</em><br>
+        Categoría: <em>solido</em>, <em>liquido</em> o <em>contable</em><br>
+        Unidades sólido: lb, kg, g, oz<br>
+        Unidades líquido: L, ml, taza, fl_oz<br>
+        Unidades contable: unidad, docena, manojo
+      </div>
+    </div>
+    <div class="upload-area" id="excel-drop">
+      <input type="file" accept=".xlsx,.xls,.csv" onchange="cargarExcel(this)">
+      <p>📊 Toca para subir tu Excel o CSV</p>
+    </div>
+    <div id="excel-preview" style="margin-top:12px;"></div>
+  </div>
+</div>
+
+<!-- ══════════════ PÁGINA: RECETAS ══════════════ -->
+<div class="page" id="page-recetas">
+  <div class="page-title">📖 Recetas</div>
+  <div id="notif-rec" class="notif"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('rec','lista',this)">Mis recetas</button>
+    <button class="tab-btn" onclick="switchTab('rec','nueva',this)">+ Nueva</button>
+  </div>
+
+  <!-- LISTA RECETAS -->
+  <div class="tab-panel active" id="rec-tab-lista">
+    <div id="rec-lista"></div>
+  </div>
+
+  <!-- NUEVA RECETA -->
+  <div class="tab-panel" id="rec-tab-nueva">
+    <div class="field">
+      <label>Nombre del plato</label>
+      <input type="text" id="rec-nombre" placeholder="Ej: Locrio de pollo">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Porciones base</label>
+        <input type="number" id="rec-porciones" placeholder="10" min="1">
+      </div>
+      <div class="field">
+        <label>Categoría</label>
+        <select id="rec-categoria">
+          <option>Almuerzo</option>
+          <option>Cena</option>
+          <option>Desayuno</option>
+          <option>Bebida</option>
+          <option>Postre</option>
+          <option>Otro</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="section-label" style="margin-top:14px;">Ingredientes (comida)</div>
+    <div id="rec-ings-lista"></div>
+    <button class="btn btn-ghost btn-sm" onclick="addRecIng()" style="margin-bottom:14px;">+ Agregar ingrediente</button>
+
+    <div class="section-label">Insumos de empaque (opcional)</div>
+    <div style="font-size:0.75rem;color:var(--text-mute);margin-bottom:8px;">Platos, cucharas, fundas, servilletas. Se descuentan del stock cuando registras la venta, no al publicar el menú.</div>
+    <div id="rec-empaques-lista"></div>
+    <button class="btn btn-ghost btn-sm" onclick="addRecEmpaque()" style="margin-bottom:14px;">+ Agregar empaque</button>
+
+    <!-- CALCULADORA EN VIVO -->
+    <div class="calc-box" id="rec-calc">
+      <div class="calc-row">
+        <span class="calc-label">Costo total ingredientes</span>
+        <span class="calc-val gold" id="rc-costo-total">RD$0</span>
+      </div>
+      <div class="calc-row">
+        <span class="calc-label">Costo por porción</span>
+        <span class="calc-val gold" id="rc-costo-porcion">RD$0</span>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
+      <div class="field-row" style="margin-bottom:8px;">
+        <div class="field" style="margin:0;">
+          <label>Precio de venta</label>
+          <input type="number" id="rc-precio" placeholder="RD$" oninput="calcDesde('precio')" step="0.01">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Margen de ganancia %</label>
+          <input type="number" id="rc-margen" placeholder="%" oninput="calcDesde('margen')" step="0.1">
+        </div>
+      </div>
+      <div class="calc-row">
+        <span class="calc-label">Ganancia por porción</span>
+        <span class="calc-val green" id="rc-ganancia-porcion">RD$0</span>
+      </div>
+    </div>
+
+    <button class="btn btn-gold btn-full" style="margin-top:14px;" onclick="guardarReceta()">Guardar receta</button>
+  </div>
+</div>
+
+<!-- ══════════════ PÁGINA: MENÚ DEL DÍA ══════════════ -->
+<div class="page" id="page-menu">
+  <div class="page-title">🍽 Menú del día</div>
+  <div id="notif-menu" class="notif"></div>
+
+  <div class="section-label">Selecciona recetas para hoy</div>
+  <div id="menu-selector"></div>
+
+  <div class="section-label" style="margin-top:16px;">Menú activo</div>
+  <div id="menu-activo"></div>
+
+  <button class="btn btn-gold btn-full" style="margin-top:12px;" onclick="publicarMenu()">✅ Confirmar menú del día</button>
+  <div style="font-size:0.72rem;color:var(--text-mute);text-align:center;margin-top:8px;">
+    Esto descontará el stock de ingredientes automáticamente
+  </div>
+</div>
+
+<!-- ══════════════ PÁGINA: VENTAS ══════════════ -->
+<div class="page" id="page-ventas">
+  <div class="page-title">💰 Ventas</div>
+  <div id="notif-ven" class="notif"></div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('ven','registrar',this)">Registrar</button>
+    <button class="tab-btn" onclick="switchTab('ven','historial',this)">Historial</button>
+  </div>
+
+  <!-- REGISTRAR -->
+  <div class="tab-panel active" id="ven-tab-registrar">
+    <div class="section-label">¿Qué vendiste?</div>
+    <div id="venta-menu-items"></div>
+
+    <div class="section-label">¿Cómo pagó?</div>
+    <div class="pago-metodos" id="pago-metodos">
+      <button type="button" class="pago-btn active" data-metodo="efectivo" onclick="seleccionarMetodoPago('efectivo')">
+        <span class="pago-icon">💵</span><span>Efectivo</span>
+      </button>
+      <button type="button" class="pago-btn" data-metodo="transferencia" onclick="seleccionarMetodoPago('transferencia')">
+        <span class="pago-icon">📲</span><span>Transferencia</span>
+      </button>
+      <button type="button" class="pago-btn" data-metodo="credito" onclick="seleccionarMetodoPago('credito')">
+        <span class="pago-icon">📒</span><span>Crédito</span>
+      </button>
+    </div>
+
+    <button type="button" class="btn-link-dividir" onclick="toggleDividirPago()" id="btn-dividir-pago">¿Pago dividido entre métodos? Toca aquí</button>
+
+    <div id="pago-dividido-wrap" style="display:none;">
+      <div class="venta-split">
+        <div class="venta-split-field field" style="margin:0;">
+          <label>Efectivo</label>
+          <input type="number" id="v-efectivo" placeholder="0" oninput="calcVentaTotal()" step="0.01">
+        </div>
+        <div class="venta-split-field field" style="margin:0;">
+          <label>Transferencia</label>
+          <input type="number" id="v-transfer" placeholder="0" oninput="calcVentaTotal()" step="0.01">
+        </div>
+        <div class="venta-split-field field" style="margin:0;">
+          <label>Crédito</label>
+          <input type="number" id="v-credito" placeholder="0" oninput="calcVentaTotal()" step="0.01">
+        </div>
+      </div>
+    </div>
+
+    <div id="v-credito-cliente-wrap" style="display:none;">
+      <div class="field">
+        <label>Nombre del cliente (crédito)</label>
+        <input type="text" id="v-cliente" placeholder="Nombre del cliente">
+      </div>
+    </div>
+
+    <div class="calc-box" style="margin-bottom:14px;">
+      <div class="calc-row">
+        <span class="calc-label">Total venta</span>
+        <span class="calc-val gold" id="v-total">RD$0</span>
+      </div>
+      <div class="calc-row" id="v-pendiente-row" style="display:none;">
+        <span class="calc-label">A crédito</span>
+        <span class="calc-val red" id="v-pendiente">RD$0</span>
+      </div>
+    </div>
+
+    <button class="btn btn-green btn-full" onclick="registrarVenta()">Registrar venta</button>
+  </div>
+
+  <!-- HISTORIAL -->
+  <div class="tab-panel" id="ven-tab-historial">
+    <div class="field-row" style="margin-bottom:12px;">
+      <div class="field" style="margin:0;">
+        <label>Desde</label>
+        <input type="date" id="hist-desde">
+      </div>
+      <div class="field" style="margin:0;">
+        <label>Hasta</label>
+        <input type="date" id="hist-hasta">
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-sm btn-full" onclick="cargarHistorial()" style="margin-bottom:14px;">Filtrar</button>
+    <div id="hist-stats" class="calc-box" style="margin-bottom:14px;display:none;"></div>
+    <div id="hist-lista"></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="bnav-btn active" onclick="goPage('dashboard',this)">
+    <span class="icon">📊</span>
+    <span class="label">Inicio</span>
+  </button>
+  <button class="bnav-btn" onclick="goPage('ingredientes',this)">
+    <span class="icon">📦</span>
+    <span class="label">Ingredientes</span>
+  </button>
+  <button class="bnav-btn" onclick="goPage('recetas',this)">
+    <span class="icon">📖</span>
+    <span class="label">Recetas</span>
+  </button>
+  <button class="bnav-btn" onclick="goPage('menu',this)">
+    <span class="icon">🍽</span>
+    <span class="label">Menú</span>
+  </button>
+  <button class="bnav-btn" onclick="goPage('ventas',this)">
+    <span class="icon">💰</span>
+    <span class="label">Ventas</span>
+  </button>
+</nav>
+
+<!-- MODAL: VER/USAR RECETA -->
+<div class="modal-overlay" id="modal-receta">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span id="mr-nombre">Receta</span>
+      <button class="modal-close" onclick="closeModal('modal-receta')">✕</button>
+    </div>
+    <div id="mr-contenido"></div>
+  </div>
+</div>
+
+<!-- MODAL: COMPRA DE INGREDIENTE -->
+<div class="modal-overlay" id="modal-compra">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span>Registrar compra</span>
+      <button class="modal-close" onclick="closeModal('modal-compra')">✕</button>
+    </div>
+    <div id="mc-contenido"></div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR INGREDIENTE -->
+<div class="modal-overlay" id="modal-editar-ing">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span>Editar ingrediente</span>
+      <button class="modal-close" onclick="closeModal('modal-editar-ing')">✕</button>
+    </div>
+    <div id="ei-contenido"></div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR RECETA -->
+<div class="modal-overlay" id="modal-editar-receta">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span>Editar receta</span>
+      <button class="modal-close" onclick="closeModal('modal-editar-receta')">✕</button>
+    </div>
+    <div id="er-contenido"></div>
+  </div>
+</div>
+
+<!-- MODAL: ALERTAS DE STOCK -->
+<div class="modal-overlay" id="modal-alertas">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span>⚠️ Stock bajo</span>
+      <button class="modal-close" onclick="closeModal('modal-alertas')">✕</button>
+    </div>
+    <div id="al-contenido"></div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// FIREBASE CONFIG
+// ══════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyAXOXGdq68XJ31e4ATs3ZnY1ft3gCGIav4",
+  authDomain: "loraine-cocina.firebaseapp.com",
+  databaseURL: "https://loraine-cocina-default-rtdb.firebaseio.com",
+  projectId: "loraine-cocina",
+  storageBucket: "loraine-cocina.firebasestorage.app",
+  messagingSenderId: "573058387330",
+  appId: "1:573058387330:web:feee61103d8d589f17939b"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ══════════════════════════════════════════
+// ESTADO LOCAL (cache offline)
+// ══════════════════════════════════════════
+let state = {
+  ingredientes: {},
+  recetas: {},
+  menuDia: {},
+  ventas: {},
+  gastosDia: {}
+};
+
+// ══════════════════════════════════════════
+// UNIDADES
+// ══════════════════════════════════════════
+const UNIDADES = {
+  solido:   ['lb','kg','g','oz'],
+  liquido:  ['L','ml','taza','fl_oz'],
+  contable: ['unidad','docena','manojo']
+};
+
+// Factores de conversión a unidad base (lb para sólido, ml para líquido, unidad para contable)
+const CONVERSION = {
+  lb: 1, kg: 2.20462, g: 0.00220462, oz: 0.0625,
+  L: 1000, ml: 1, taza: 240, fl_oz: 29.5735,
+  unidad: 1, docena: 12, manojo: 1
+};
+
+function toBase(valor, unidad) { return valor * (CONVERSION[unidad] || 1); }
+function fromBase(base, unidad) { return base / (CONVERSION[unidad] || 1); }
+
+// ══════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════
+function hoy() { return new Date().toISOString().split('T')[0]; }
+function moneda(n) { return 'RD$' + Number(n||0).toLocaleString('es-DO',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).substr(2,5); }
+function fmtFecha(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  return d.toLocaleDateString('es-DO',{weekday:'short',day:'numeric',month:'short'});
+}
+
+function porcionesVendidasHoy() {
+  // recetaId -> cantidad vendida hoy
+  const vendidas = {};
+  Object.values(state.ventas).forEach(v => {
+    if (v.fecha !== hoy() || !v.items) return;
+    v.items.forEach(it => {
+      vendidas[it.recetaId] = (vendidas[it.recetaId] || 0) + (it.cantidad || 0);
+    });
+  });
+  return vendidas;
+}
+
+// ══════════════════════════════════════════
+// SYNC INDICATOR
+// ══════════════════════════════════════════
+const dot = document.getElementById('sync-dot');
+db.ref('.info/connected').on('value', snap => {
+  dot.className = 'sync-dot' + (snap.val() ? '' : ' offline');
+  dot.title = snap.val() ? 'Sincronizado' : 'Sin conexión — guardando local';
+});
+
+// ══════════════════════════════════════════
+// FIREBASE LISTENERS (tiempo real)
+// ══════════════════════════════════════════
+function initListeners() {
+  db.ref('ingredientes').on('value', snap => {
+    state.ingredientes = snap.val() || {};
+    renderIngredientes();
+    renderDashboard();
+    renderMenuSelector();
+    renderVentaItems();
+  });
+  db.ref('recetas').on('value', snap => {
+    state.recetas = snap.val() || {};
+    renderRecetas();
+    renderMenuSelector();
+    renderVentaItems();
+  });
+  db.ref('menuDia/' + hoy()).on('value', snap => {
+    state.menuDia = snap.val() || {};
+    renderMenuActivo();
+    renderDashMenuResumen();
+    renderVentaItems();
+  });
+  db.ref('ventas').on('value', snap => {
+    state.ventas = snap.val() || {};
+    renderDashboard();
+  });
+}
+
+// ══════════════════════════════════════════
+// NAVEGACIÓN
+// ══════════════════════════════════════════
+function goPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function switchTab(prefix, id, btn) {
+  const page = btn.closest('.page');
+  page.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  page.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(prefix + '-tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// Cerrar modal tocando overlay
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ══════════════════════════════════════════
+// NOTIFICACIONES
+// ══════════════════════════════════════════
+function notif(id, msg, tipo) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'notif show-' + tipo;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = 'notif'; }, 3500);
+}
+
+// ══════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════
+function renderDashboard() {
+  const ventasHoy = Object.values(state.ventas).filter(v => v.fecha === hoy());
+  let totalVentas = 0, totalEfectivo = 0, totalTransfer = 0, totalCredito = 0, totalPorciones = 0;
+  ventasHoy.forEach(v => {
+    totalVentas += v.total || 0;
+    totalEfectivo += v.efectivo || 0;
+    totalTransfer += v.transfer || 0;
+    totalCredito += v.credito || 0;
+    totalPorciones += v.porciones || 0;
+  });
+
+  // Gastos = compras del día
+  const gastosHoy = Object.values(state.gastosDia || {}).filter(g => g.fecha === hoy());
+  const totalGastos = gastosHoy.reduce((s, g) => s + (g.monto || 0), 0);
+
+  document.getElementById('d-ventas').textContent = moneda(totalVentas);
+  document.getElementById('d-gastos').textContent = moneda(totalGastos);
+  document.getElementById('d-ganancia').textContent = moneda(totalVentas - totalGastos);
+  document.getElementById('d-porciones').textContent = totalPorciones;
+  document.getElementById('d-efectivo').textContent = moneda(totalEfectivo);
+  document.getElementById('d-transfer').textContent = moneda(totalTransfer);
+  document.getElementById('d-credito').textContent = moneda(totalCredito);
+
+  // Alertas de stock
+  const alertas = Object.values(state.ingredientes).filter(i =>
+    i.stock !== undefined && i.stockMin !== undefined && i.stock <= i.stockMin
+  );
+  window._alertasStock = alertas;
+  const alertDiv = document.getElementById('dash-alertas');
+  if (!alertas.length) {
+    alertDiv.innerHTML = '<div class="empty"><span class="e-icon">✅</span><p>Todo el inventario está bien.</p></div>';
+  } else {
+    alertDiv.innerHTML = `
+      <button type="button" class="alert-counter" onclick="abrirAlertasStock()">
+        ⚠️ <strong>${alertas.length}</strong> ${alertas.length === 1 ? 'artículo' : 'artículos'} con stock bajo
+        <span style="margin-left:auto;color:var(--text-mute);">Ver →</span>
+      </button>
+    `;
+  }
+}
+
+function abrirAlertasStock() {
+  const alertas = window._alertasStock || [];
+  const cont = document.getElementById('al-contenido');
+  if (!alertas.length) {
+    cont.innerHTML = '<div class="empty"><span class="e-icon">✅</span><p>Todo bien.</p></div>';
+  } else {
+    cont.innerHTML = alertas.map(i => `
+      <div class="alert-row">
+        ⚠️ <strong>${i.nombre}</strong> — Stock: ${i.stock} ${i.unidad} (mínimo: ${i.stockMin})
+      </div>
+    `).join('');
+  }
+  openModal('modal-alertas');
+}
+
+function renderDashMenuResumen() {
+  const div = document.getElementById('dash-menu');
+  const items = Object.values(state.menuDia);
+  if (!items.length) {
+    div.innerHTML = '<div class="empty"><span class="e-icon">🍽</span><p>No hay menú configurado para hoy.</p></div>';
+    return;
+  }
+  const vendidas = porcionesVendidasHoy();
+  div.innerHTML = items.map(item => {
+    const rec = state.recetas[item.recetaId] || {};
+    const vendido = vendidas[item.recetaId] || 0;
+    const disponible = Math.max(0, item.porciones - vendido);
+    const agotado = disponible <= 0;
+    return `
+      <div class="menu-item-row">
+        <span class="mi-name">${rec.nombre || '—'} ${agotado ? '<span class=\"badge badge-red\">Agotado</span>' : ''}</span>
+        <span class="mi-porciones">${agotado ? '0' : disponible} disp.</span>
+        <span class="mi-costo">${moneda(item.costoTotal)}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// INGREDIENTES
+// ══════════════════════════════════════════
+let tipoIngActual = 'comida';
+let filtroTipoActual = 'todos';
+
+function seleccionarTipoIng(tipo) {
+  tipoIngActual = tipo;
+  document.querySelectorAll('#ing-tab-agregar .tipo-btn').forEach(b => b.classList.toggle('active', b.dataset.tipo === tipo));
+}
+
+function filtrarPorTipo(tipo) {
+  filtroTipoActual = tipo;
+  document.querySelectorAll('#filtro-tipo-ing .filtro-tipo-btn').forEach(b => b.classList.toggle('active', b.dataset.filtro === tipo));
+  renderIngredientes();
+}
+
+function actualizarUnidades() {
+  const cat = document.getElementById('ing-cat').value;
+  const sel = document.getElementById('ing-unidad');
+  sel.innerHTML = UNIDADES[cat].map(u => `<option value="${u}">${u}</option>`).join('');
+}
+
+function renderIngredientes() {
+  const lista = document.getElementById('ing-lista');
+  const busq = (document.getElementById('ing-search')?.value || '').toLowerCase();
+  const ings = Object.entries(state.ingredientes)
+    .filter(([, i]) => i.nombre.toLowerCase().includes(busq))
+    .filter(([, i]) => filtroTipoActual === 'todos' || (i.tipo || 'comida') === filtroTipoActual)
+    .sort((a, b) => a[1].nombre.localeCompare(b[1].nombre));
+
+  if (!ings.length) {
+    lista.innerHTML = '<div class="empty"><span class="e-icon">📦</span><p>No hay ingredientes. Agrega uno o sube un Excel.</p></div>';
+    return;
+  }
+  lista.innerHTML = ings.map(([id, i]) => {
+    const bajo = i.stock !== undefined && i.stockMin !== undefined && i.stock <= i.stockMin;
+    const esEmpaque = (i.tipo || 'comida') === 'empaque';
+    return `
+      <div class="ing-row ${bajo ? 'low-stock' : ''}">
+        <div style="flex:1;">
+          <div class="ing-name">${esEmpaque ? '🥡 ' : ''}${i.nombre}</div>
+          <div class="ing-stock">Stock: ${(i.stock||0).toFixed(2)} ${i.unidad} ${bajo ? '⚠️' : ''}</div>
+        </div>
+        <div class="ing-price">${moneda(i.precioPorUnidad)}/${i.unidad}</div>
+        <button class="btn btn-ghost btn-sm" onclick="abrirCompra('${id}')">Comprar</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirEditarIng('${id}')">✏️</button>
+        <button class="btn btn-red btn-sm" onclick="eliminarIng('${id}')">✕</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function filtrarIngredientes() { renderIngredientes(); }
+
+function guardarIngrediente() {
+  const nombre = document.getElementById('ing-nombre').value.trim();
+  const cat = document.getElementById('ing-cat').value;
+  const unidad = document.getElementById('ing-unidad').value;
+  const cantCompra = parseFloat(document.getElementById('ing-cant-compra').value) || 1;
+  const precio = parseFloat(document.getElementById('ing-precio').value) || 0;
+  const stockIni = parseFloat(document.getElementById('ing-stock-ini').value) || 0;
+  const stockMin = parseFloat(document.getElementById('ing-stock-min').value) || 0;
+  const tipo = tipoIngActual;
+
+  if (!nombre) { notif('notif-ing','Ingresa el nombre del ingrediente','red'); return; }
+
+  const precioPorUnidad = precio / cantCompra;
+  const id = uid();
+  const data = { nombre, tipo, cat, unidad, cantCompra, precio, precioPorUnidad, stock: stockIni, stockMin };
+
+  dot.className = 'sync-dot syncing';
+  db.ref('ingredientes/' + id).set(data)
+    .then(() => {
+      notif('notif-ing', `✅ ${nombre} guardado`, 'green');
+      ['ing-nombre','ing-cant-compra','ing-precio','ing-stock-ini','ing-stock-min'].forEach(f => document.getElementById(f).value = '');
+    })
+    .catch(e => notif('notif-ing', 'Error: ' + e.message, 'red'));
+}
+
+function eliminarIng(id) {
+  if (!confirm('¿Eliminar este ingrediente?')) return;
+  db.ref('ingredientes/' + id).remove();
+}
+
+function abrirEditarIng(id) {
+  const ing = state.ingredientes[id];
+  if (!ing) return;
+  const cont = document.getElementById('ei-contenido');
+  cont.innerHTML = `
+    <div class="field">
+      <label>Nombre</label>
+      <input type="text" id="ei-nombre" value="${ing.nombre}">
+    </div>
+    <div class="field">
+      <label>Tipo</label>
+      <div class="tipo-toggle">
+        <button type="button" class="tipo-btn ${(ing.tipo||'comida')==='comida'?'active':''}" id="ei-tipo-comida" onclick="eiSeleccionarTipo('comida')">🍗 Comida</button>
+        <button type="button" class="tipo-btn ${ing.tipo==='empaque'?'active':''}" id="ei-tipo-empaque" onclick="eiSeleccionarTipo('empaque')">🥡 Empaque</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Precio por ${ing.unidad}</label>
+      <input type="number" id="ei-precio-unidad" value="${ing.precioPorUnidad.toFixed(2)}" step="0.01">
+    </div>
+    <div class="field">
+      <label>Stock mínimo (alerta)</label>
+      <input type="number" id="ei-stock-min" value="${ing.stockMin||0}" step="0.01">
+    </div>
+    <hr class="div">
+    <div class="field">
+      <label>Ajustar stock actual (uso personal, daño, pérdida)</label>
+      <div style="font-size:0.72rem;color:var(--text-mute);margin-bottom:8px;">Stock actual: ${(ing.stock||0).toFixed(2)} ${ing.unidad}. Escribe el nuevo total real.</div>
+      <input type="number" id="ei-stock-ajuste" value="${(ing.stock||0).toFixed(2)}" step="0.01">
+    </div>
+    <button class="btn btn-gold btn-full" onclick="guardarEdicionIng('${id}')">Guardar cambios</button>
+  `;
+  ing._tipoEdicion = ing.tipo || 'comida';
+  openModal('modal-editar-ing');
+}
+
+function eiSeleccionarTipo(tipo) {
+  document.getElementById('ei-tipo-comida').classList.toggle('active', tipo === 'comida');
+  document.getElementById('ei-tipo-empaque').classList.toggle('active', tipo === 'empaque');
+  document.getElementById('ei-contenido').dataset.tipo = tipo;
+}
+
+function guardarEdicionIng(id) {
+  const nombre = document.getElementById('ei-nombre').value.trim();
+  const precioUnidad = parseFloat(document.getElementById('ei-precio-unidad').value) || 0;
+  const stockMin = parseFloat(document.getElementById('ei-stock-min').value) || 0;
+  const nuevoStock = parseFloat(document.getElementById('ei-stock-ajuste').value) || 0;
+  const tipo = document.getElementById('ei-contenido').dataset.tipo || state.ingredientes[id].tipo || 'comida';
+
+  if (!nombre) { notif('notif-ing','El nombre no puede quedar vacío','red'); return; }
+
+  db.ref('ingredientes/' + id).update({
+    nombre, tipo, precioPorUnidad: precioUnidad, stockMin, stock: nuevoStock
+  }).then(() => {
+    closeModal('modal-editar-ing');
+    notif('notif-ing', `✅ ${nombre} actualizado`, 'green');
+  }).catch(e => notif('notif-ing','Error: '+e.message,'red'));
+}
+
+// Modal compra
+function abrirCompra(id) {
+  const ing = state.ingredientes[id];
+  if (!ing) return;
+  const cont = document.getElementById('mc-contenido');
+  cont.innerHTML = `
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-title">${ing.nombre}</div>
+      <div class="card-sub">Stock actual: ${(ing.stock||0).toFixed(2)} ${ing.unidad} · Precio actual: ${moneda(ing.precioPorUnidad)}/${ing.unidad}</div>
+    </div>
+    <div class="field">
+      <label>Cantidad que compraste</label>
+      <input type="number" id="comp-cant" placeholder="Ej: 5" step="0.01">
+    </div>
+    <div class="field">
+      <label>Unidad</label>
+      <select id="comp-unidad">${UNIDADES[ing.cat].map(u=>`<option value="${u}" ${u===ing.unidad?'selected':''}>${u}</option>`).join('')}</select>
+    </div>
+    <div class="field">
+      <label>Precio que pagaste (total RD$)</label>
+      <input type="number" id="comp-precio" placeholder="RD$" step="0.01">
+    </div>
+    <button class="btn btn-gold btn-full" onclick="confirmarCompra('${id}')">Registrar compra</button>
+  `;
+  openModal('modal-compra');
+}
+
+function confirmarCompra(id) {
+  const ing = state.ingredientes[id];
+  const cant = parseFloat(document.getElementById('comp-cant').value) || 0;
+  const unidad = document.getElementById('comp-unidad').value;
+  const precio = parseFloat(document.getElementById('comp-precio').value) || 0;
+  if (!cant || !precio) return;
+
+  // Convertir a unidad base del ingrediente si es diferente
+  const cantEnUnidadIng = cant * (CONVERSION[unidad] / CONVERSION[ing.unidad]);
+  const nuevoStock = (ing.stock || 0) + cantEnUnidadIng;
+  const nuevoPrecioPorUnidad = precio / cant;
+
+  const updates = {};
+  updates['ingredientes/' + id + '/stock'] = nuevoStock;
+  updates['ingredientes/' + id + '/precioPorUnidad'] = nuevoPrecioPorUnidad;
+  updates['ingredientes/' + id + '/precio'] = precio;
+
+  // Registrar gasto
+  const gastoId = uid();
+  updates['gastosDia/' + gastoId] = {
+    fecha: hoy(), tipo: 'compra', ingredienteId: id,
+    nombre: ing.nombre, cantidad: cant, unidad, monto: precio
+  };
+
+  db.ref().update(updates)
+    .then(() => {
+      closeModal('modal-compra');
+      // Actualizar estado local gastos
+      if (!state.gastosDia) state.gastosDia = {};
+      state.gastosDia[gastoId] = { fecha: hoy(), monto: precio };
+      renderDashboard();
+    });
+}
+
+// ══════════════════════════════════════════
+// EXCEL / CSV
+// ══════════════════════════════════════════
+function cargarExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    const lineas = text.split('\n').filter(l => l.trim());
+    const datos = [];
+    // Detectar separador
+    const sep = text.includes(';') ? ';' : ',';
+    lineas.slice(1).forEach(linea => {
+      const cols = linea.split(sep).map(c => c.trim().replace(/"/g,''));
+      if (cols.length < 6) return;
+      const [nombre, tipo, cat, unidad, cantCompra, precio, stock, stockMin] = cols;
+      if (!nombre || !cat || !unidad) return;
+      const cp = parseFloat(cantCompra) || 1;
+      const pr = parseFloat(precio) || 0;
+      const tipoNorm = (tipo || '').toLowerCase().trim() === 'empaque' ? 'empaque' : 'comida';
+      datos.push({
+        nombre, tipo: tipoNorm, cat: cat.toLowerCase(), unidad,
+        cantCompra: cp, precio: pr,
+        precioPorUnidad: pr / cp,
+        stock: parseFloat(stock) || 0,
+        stockMin: parseFloat(stockMin) || 0
+      });
+    });
+
+    const prev = document.getElementById('excel-preview');
+    if (!datos.length) {
+      prev.innerHTML = '<div class="notif show-red">No se encontraron datos válidos. Verifica el formato.</div>';
+      return;
+    }
+    prev.innerHTML = `
+      <div class="notif show-gold">${datos.length} ingredientes encontrados</div>
+      ${datos.slice(0,5).map(d => `<div class="ing-row"><span class="ing-name">${d.nombre}</span><span class="ing-stock">${d.cantCompra} ${d.unidad}</span><span class="ing-price">${moneda(d.precioPorUnidad)}/${d.unidad}</span></div>`).join('')}
+      ${datos.length > 5 ? `<div style="font-size:0.75rem;color:var(--text-mute);text-align:center;padding:6px;">... y ${datos.length-5} más</div>` : ''}
+      <button class="btn btn-gold btn-full" style="margin-top:12px;" onclick="importarExcel(${JSON.stringify(datos).replace(/"/g,'&quot;')})">Importar todos</button>
+    `;
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function importarExcel(datos) {
+  const updates = {};
+  datos.forEach(d => { updates['ingredientes/' + uid()] = d; });
+  db.ref().update(updates)
+    .then(() => { document.getElementById('excel-preview').innerHTML = '<div class="notif show-green">✅ Importados correctamente</div>'; })
+    .catch(e => console.error(e));
+}
+
+// ══════════════════════════════════════════
+// RECETAS
+// ══════════════════════════════════════════
+let recIngCounter = 0;
+let recGastoCounter = 0;
+
+function addRecIng() {
+  const id = 'ri-' + recIngCounter++;
+  const ings = Object.entries(state.ingredientes).sort((a,b) => a[1].nombre.localeCompare(b[1].nombre));
+  const div = document.createElement('div');
+  div.className = 'rec-ing-line';
+  div.id = id;
+  div.innerHTML = `
+    <select onchange="calcReceta()" style="flex:2;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
+      <option value="">-- Ingrediente --</option>
+      ${ings.map(([iid,i]) => `<option value="${iid}">${i.nombre} (${i.unidad})</option>`).join('')}
+    </select>
+    <input type="number" placeholder="Cant." step="0.01" min="0" oninput="calcReceta()"
+      style="flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
+    <button onclick="document.getElementById('${id}').remove();calcReceta();" class="btn btn-red btn-sm">✕</button>
+  `;
+  document.getElementById('rec-ings-lista').appendChild(div);
+}
+
+function addRecEmpaque() {
+  const id = 'rg-' + recGastoCounter++;
+  const empaques = Object.entries(state.ingredientes)
+    .filter(([, i]) => (i.tipo || 'comida') === 'empaque')
+    .sort((a,b) => a[1].nombre.localeCompare(b[1].nombre));
+  const div = document.createElement('div');
+  div.className = 'rec-ing-line';
+  div.id = id;
+  div.innerHTML = `
+    <select class="rec-empaque-select" onchange="calcReceta()" style="flex:2;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
+      <option value="">-- Empaque --</option>
+      ${empaques.map(([iid,i]) => `<option value="${iid}">${i.nombre} (${i.unidad})</option>`).join('')}
+    </select>
+    <input type="number" placeholder="Cant. x porción" step="0.01" min="0" oninput="calcReceta()"
+      style="flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
+    <button onclick="document.getElementById('${id}').remove();calcReceta();" class="btn btn-red btn-sm">✕</button>
+  `;
+  document.getElementById('rec-empaques-lista').appendChild(div);
+  if (!empaques.length) notif('notif-rec','Aún no tienes ingredientes tipo empaque. Agrégalos en Ingredientes.','gold');
+}
+
+function calcReceta() {
+  const porciones = parseFloat(document.getElementById('rec-porciones').value) || 1;
+  let costoIngs = 0;
+
+  // Sumar ingredientes de comida
+  document.querySelectorAll('#rec-ings-lista .rec-ing-line').forEach(row => {
+    const sel = row.querySelector('select');
+    const inp = row.querySelector('input[type=number]');
+    if (!sel || !inp) return;
+    const ingId = sel.value;
+    const cant = parseFloat(inp.value) || 0;
+    const ing = state.ingredientes[ingId];
+    if (!ing || !cant) return;
+    costoIngs += ing.precioPorUnidad * cant;
+  });
+
+  // Los empaques NO se suman al costo de comida — se descuentan al vender, no al cocinar
+  const costoTotal = costoIngs;
+  const costoPorcion = costoTotal / porciones;
+
+  document.getElementById('rc-costo-total').textContent = moneda(costoIngs);
+  document.getElementById('rc-costo-porcion').textContent = moneda(costoPorcion);
+
+  // Recalcular precio/margen si ya tienen valor
+  const precio = parseFloat(document.getElementById('rc-precio').value);
+  const margen = parseFloat(document.getElementById('rc-margen').value);
+  if (precio) {
+    const ganancia = precio - costoPorcion;
+    document.getElementById('rc-ganancia-porcion').textContent = moneda(ganancia);
+    if (!margen) document.getElementById('rc-margen').value = costoPorcion > 0 ? ((ganancia/precio)*100).toFixed(1) : '';
+  } else if (margen) {
+    const precioCalc = costoPorcion / (1 - margen/100);
+    document.getElementById('rc-precio').value = precioCalc.toFixed(2);
+    document.getElementById('rc-ganancia-porcion').textContent = moneda(precioCalc - costoPorcion);
+  }
+
+  return { costoTotal, costoPorcion, costoIngs };
+}
+
+// Bidireccional precio ↔ margen
+function calcDesde(fuente) {
+  const porciones = parseFloat(document.getElementById('rec-porciones').value) || 1;
+  const { costoPorcion } = calcReceta();
+  if (!costoPorcion) return;
+
+  if (fuente === 'precio') {
+    const precio = parseFloat(document.getElementById('rc-precio').value) || 0;
+    if (precio > 0) {
+      const margen = ((precio - costoPorcion) / precio) * 100;
+      document.getElementById('rc-margen').value = margen.toFixed(1);
+      document.getElementById('rc-ganancia-porcion').textContent = moneda(precio - costoPorcion);
+    }
+  } else {
+    const margen = parseFloat(document.getElementById('rc-margen').value) || 0;
+    if (margen > 0 && margen < 100) {
+      const precio = costoPorcion / (1 - margen / 100);
+      document.getElementById('rc-precio').value = precio.toFixed(2);
+      document.getElementById('rc-ganancia-porcion').textContent = moneda(precio - costoPorcion);
+    }
+  }
+}
+
+function guardarReceta() {
+  const nombre = document.getElementById('rec-nombre').value.trim();
+  const porciones = parseFloat(document.getElementById('rec-porciones').value) || 0;
+  const categoria = document.getElementById('rec-categoria').value;
+  const precioVenta = parseFloat(document.getElementById('rc-precio').value) || 0;
+  const margen = parseFloat(document.getElementById('rc-margen').value) || 0;
+
+  if (!nombre || !porciones) { notif('notif-rec','Ingresa nombre y porciones','red'); return; }
+
+  const ingredientes = [];
+  document.querySelectorAll('#rec-ings-lista .rec-ing-line').forEach(row => {
+    const sel = row.querySelector('select');
+    const inp = row.querySelector('input[type=number]');
+    if (!sel || !inp) return;
+    const ingId = sel.value;
+    const cant = parseFloat(inp.value) || 0;
+    const ing = state.ingredientes[ingId];
+    if (!ing || !cant) return;
+    ingredientes.push({ ingId, nombre: ing.nombre, cantidad: cant, unidad: ing.unidad });
+  });
+
+  const empaques = [];
+  document.querySelectorAll('#rec-empaques-lista .rec-ing-line').forEach(row => {
+    const sel = row.querySelector('select');
+    const inp = row.querySelector('input[type=number]');
+    if (!sel || !inp) return;
+    const ingId = sel.value;
+    const cantPorPorcion = parseFloat(inp.value) || 0;
+    const ing = state.ingredientes[ingId];
+    if (!ing || !cantPorPorcion) return;
+    empaques.push({ ingId, nombre: ing.nombre, cantidadPorPorcion: cantPorPorcion, unidad: ing.unidad });
+  });
+
+  if (!ingredientes.length) { notif('notif-rec','Agrega al menos un ingrediente','red'); return; }
+
+  const { costoTotal, costoPorcion } = calcReceta();
+
+  const receta = {
+    nombre, porciones, categoria, ingredientes, empaques,
+    costoTotal, costoPorcion, precioVenta, margen,
+    creadoEn: Date.now()
+  };
+
+  db.ref('recetas/' + uid()).set(receta)
+    .then(() => {
+      notif('notif-rec', `✅ ${nombre} guardada`, 'green');
+      // Limpiar form
+      document.getElementById('rec-nombre').value = '';
+      document.getElementById('rec-porciones').value = '';
+      document.getElementById('rec-ings-lista').innerHTML = '';
+      document.getElementById('rec-empaques-lista').innerHTML = '';
+      document.getElementById('rc-precio').value = '';
+      document.getElementById('rc-margen').value = '';
+      calcReceta();
+    })
+    .catch(e => notif('notif-rec','Error: '+e.message,'red'));
+}
+
+function renderRecetas() {
+  const lista = document.getElementById('rec-lista');
+  const recs = Object.entries(state.recetas).sort((a,b) => a[1].nombre.localeCompare(b[1].nombre));
+  if (!recs.length) {
+    lista.innerHTML = '<div class="empty"><span class="e-icon">📖</span><p>No hay recetas. Crea la primera.</p></div>';
+    return;
+  }
+  lista.innerHTML = recs.map(([id, r]) => `
+    <div class="card">
+      <div class="card-row">
+        <div>
+          <div class="card-title">${r.nombre}</div>
+          <div class="card-sub">${r.porciones} porciones base · ${r.categoria}</div>
+        </div>
+        <span class="badge badge-gold">${moneda(r.costoPorcion)}/porc.</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <div style="flex:1;background:var(--surface2);border-radius:4px;padding:8px;text-align:center;">
+          <div style="font-family:var(--title);font-size:1.1rem;color:var(--red);">${moneda(r.costoTotal)}</div>
+          <div style="font-size:0.62rem;color:var(--text-mute);text-transform:uppercase;letter-spacing:1px;">Costo total</div>
+        </div>
+        <div style="flex:1;background:var(--surface2);border-radius:4px;padding:8px;text-align:center;">
+          <div style="font-family:var(--title);font-size:1.1rem;color:var(--gold);">${moneda(r.precioVenta)}</div>
+          <div style="font-size:0.62rem;color:var(--text-mute);text-transform:uppercase;letter-spacing:1px;">Precio venta</div>
+        </div>
+        <div style="flex:1;background:var(--surface2);border-radius:4px;padding:8px;text-align:center;">
+          <div style="font-family:var(--title);font-size:1.1rem;color:var(--green);">${r.margen ? r.margen.toFixed(1)+'%' : '—'}</div>
+          <div style="font-size:0.62rem;color:var(--text-mute);text-transform:uppercase;letter-spacing:1px;">Margen</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-ghost btn-sm" style="flex:1;" onclick="verReceta('${id}')">Ver / Escalar</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirEditarReceta('${id}')">✏️</button>
+        <button class="btn btn-red btn-sm" onclick="eliminarReceta('${id}')">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function verReceta(id) {
+  const r = state.recetas[id];
+  if (!r) return;
+  document.getElementById('mr-nombre').textContent = r.nombre;
+  const cont = document.getElementById('mr-contenido');
+  cont.innerHTML = `
+    <div class="field">
+      <label>Porciones a preparar</label>
+      <input type="number" id="mr-porciones" value="${r.porciones}" min="1" oninput="escalarReceta('${id}')">
+    </div>
+    <div id="mr-ings-escalados" style="margin-bottom:14px;"></div>
+    <div class="calc-box" id="mr-calc"></div>
+    <div style="margin-top:14px;">
+      <button class="btn btn-gold btn-full" onclick="usarEnMenu('${id}')">Agregar al menú de hoy</button>
+    </div>
+  `;
+  escalarReceta(id);
+  openModal('modal-receta');
+}
+
+function escalarReceta(id) {
+  const r = state.recetas[id];
+  if (!r) return;
+  const nuevasPorciones = parseFloat(document.getElementById('mr-porciones').value) || r.porciones;
+  const factor = nuevasPorciones / r.porciones;
+
+  // Verificar stock de ingredientes de comida
+  const alertas = [];
+  const ingsHtml = r.ingredientes.map(ing => {
+    const cantNecesaria = ing.cantidad * factor;
+    const ingData = state.ingredientes[ing.ingId];
+    const stockOk = ingData ? ingData.stock >= cantNecesaria : false;
+    if (!stockOk) alertas.push(ing.nombre);
+    return `
+      <div class="ing-row ${!stockOk ? 'low-stock' : ''}">
+        <span class="ing-name">${ing.nombre}</span>
+        <span class="ing-stock">${!stockOk ? '⚠️ Stock insuficiente' : '✅'}</span>
+        <span class="ing-price">${cantNecesaria.toFixed(2)} ${ing.unidad}</span>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('mr-ings-escalados').innerHTML = ingsHtml;
+
+  // Verificar stock de empaques (informativo, se descuenta al vender)
+  const empaques = r.empaques || [];
+  if (empaques.length) {
+    const empHtml = empaques.map(e => {
+      const ingData = state.ingredientes[e.ingId];
+      const disponible = ingData ? ingData.stock : 0;
+      return `
+        <div class="ing-row" style="opacity:0.8;">
+          <span class="ing-name">🥡 ${e.nombre}</span>
+          <span class="ing-stock">Disp: ${(disponible||0).toFixed(0)} ${e.unidad}</span>
+          <span class="ing-price">${e.cantidadPorPorcion}/porc.</span>
+        </div>
+      `;
+    }).join('');
+    document.getElementById('mr-ings-escalados').innerHTML += `
+      <div style="font-size:0.68rem;color:var(--text-mute);text-transform:uppercase;letter-spacing:1px;margin:10px 0 4px;">Empaques (se descuentan al vender)</div>
+      ${empHtml}
+    `;
+  }
+
+  const costoTotal = r.costoTotal * factor;
+  const costoPorcion = costoTotal / nuevasPorciones;
+  const precioVenta = r.precioVenta || 0;
+
+  document.getElementById('mr-calc').innerHTML = `
+    <div class="calc-row"><span class="calc-label">Porciones</span><span class="calc-val gold">${nuevasPorciones}</span></div>
+    <div class="calc-row"><span class="calc-label">Costo total</span><span class="calc-val red">${moneda(costoTotal)}</span></div>
+    <div class="calc-row"><span class="calc-label">Costo por porción</span><span class="calc-val gold">${moneda(costoPorcion)}</span></div>
+    <div class="calc-row"><span class="calc-label">Precio de venta</span><span class="calc-val green">${moneda(precioVenta)}</span></div>
+    <div class="calc-row"><span class="calc-label">Ganancia estimada total</span><span class="calc-val green">${moneda((precioVenta - costoPorcion) * nuevasPorciones)}</span></div>
+    ${alertas.length ? `<div style="margin-top:8px;padding:8px;background:var(--red-dim);border-radius:4px;font-size:0.78rem;color:#e74c3c;">⚠️ Stock insuficiente: ${alertas.join(', ')}</div>` : ''}
+  `;
+}
+
+function usarEnMenu(recetaId) {
+  const porciones = parseFloat(document.getElementById('mr-porciones').value) || 0;
+  if (!porciones) return;
+  const r = state.recetas[recetaId];
+  const factor = porciones / r.porciones;
+  const costoTotal = r.costoTotal * factor;
+
+  // Agregar al selector del menú del día
+  const itemId = uid();
+  state.menuDia[itemId] = { recetaId, porciones, costoTotal, _local: true };
+  renderMenuActivo();
+  closeModal('modal-receta');
+  // Ir a página de menú
+  document.querySelectorAll('.bnav-btn')[3].click();
+}
+
+function eliminarReceta(id) {
+  if (!confirm('¿Eliminar esta receta?')) return;
+  db.ref('recetas/' + id).remove();
+}
+
+function abrirEditarReceta(id) {
+  const r = state.recetas[id];
+  if (!r) return;
+  const ingsTodos = Object.entries(state.ingredientes).filter(([,i]) => (i.tipo||'comida')==='comida').sort((a,b)=>a[1].nombre.localeCompare(b[1].nombre));
+  const empaquesTodos = Object.entries(state.ingredientes).filter(([,i]) => i.tipo==='empaque').sort((a,b)=>a[1].nombre.localeCompare(b[1].nombre));
+
+  const cont = document.getElementById('er-contenido');
+  cont.innerHTML = `
+    <div class="field">
+      <label>Nombre del plato</label>
+      <input type="text" id="er-nombre" value="${r.nombre}">
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label>Porciones base</label>
+        <input type="number" id="er-porciones" value="${r.porciones}" min="1" oninput="calcRecetaEdit('${id}')">
+      </div>
+      <div class="field">
+        <label>Categoría</label>
+        <select id="er-categoria">
+          ${['Almuerzo','Cena','Desayuno','Bebida','Postre','Otro'].map(c=>`<option ${c===r.categoria?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="section-label">Ingredientes (comida)</div>
+    <div id="er-ings-lista">
+      ${r.ingredientes.map(ing => `
+        <div class="rec-ing-line">
+          <select onchange="calcRecetaEdit('${id}')" style="flex:2;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
+            <option value="">-- Ingrediente --</option>
+            ${ingsTodos.map(([iid,i]) => `<option value="${iid}" ${iid===ing.ingId?'selected':''}>${i.nombre} (${i.unidad})</option>`).join('')}
+          </select>
+          <input type="number" value="${ing.cantidad}" step="0.01" min="0" oninput="calcRecetaEdit('${id}')"
+            style="flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
+          <button onclick="this.parentElement.remove();calcRecetaEdit('${id}');" class="btn btn-red btn-sm">✕</button>
+        </div>
+      `).join('')}
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="addRecIngEdit('${id}')" style="margin-bottom:14px;">+ Agregar ingrediente</button>
+
+    <div class="section-label">Insumos de empaque (opcional)</div>
+    <div id="er-empaques-lista">
+      ${(r.empaques||[]).map(emp => `
+        <div class="rec-ing-line">
+          <select onchange="calcRecetaEdit('${id}')" style="flex:2;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
+            <option value="">-- Empaque --</option>
+            ${empaquesTodos.map(([iid,i]) => `<option value="${iid}" ${iid===emp.ingId?'selected':''}>${i.nombre} (${i.unidad})</option>`).join('')}
+          </select>
+          <input type="number" value="${emp.cantidadPorPorcion}" step="0.01" min="0" oninput="calcRecetaEdit('${id}')"
+            style="flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
+          <button onclick="this.parentElement.remove();calcRecetaEdit('${id}');" class="btn btn-red btn-sm">✕</button>
+        </div>
+      `).join('')}
+    </div>
+    <button class="btn btn-ghost btn-sm" onclick="addRecEmpaqueEdit('${id}')" style="margin-bottom:14px;">+ Agregar empaque</button>
+
+    <div class="calc-box" id="er-calc">
+      <div class="calc-row"><span class="calc-label">Costo total ingredientes</span><span class="calc-val gold" id="erc-costo-total">${moneda(r.costoTotal)}</span></div>
+      <div class="calc-row"><span class="calc-label">Costo por porción</span><span class="calc-val gold" id="erc-costo-porcion">${moneda(r.costoPorcion)}</span></div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
+      <div class="field-row" style="margin-bottom:8px;">
+        <div class="field" style="margin:0;">
+          <label>Precio de venta</label>
+          <input type="number" id="er-precio" value="${r.precioVenta||''}" oninput="calcDesdeEdit('${id}','precio')" step="0.01">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Margen %</label>
+          <input type="number" id="er-margen" value="${r.margen||''}" oninput="calcDesdeEdit('${id}','margen')" step="0.1">
+        </div>
+      </div>
+      <div class="calc-row"><span class="calc-label">Ganancia por porción</span><span class="calc-val green" id="erc-ganancia">RD$0</span></div>
+    </div>
+
+    <button class="btn btn-gold btn-full" style="margin-top:14px;" onclick="guardarEdicionReceta('${id}')">Guardar cambios</button>
+  `;
+  openModal('modal-editar-receta');
+}
+
+function addRecIngEdit(recetaId) {
+  const ingsTodos = Object.entries(state.ingredientes).filter(([,i]) => (i.tipo||'comida')==='comida').sort((a,b)=>a[1].nombre.localeCompare(b[1].nombre));
+  const div = document.createElement('div');
+  div.className = 'rec-ing-line';
+  div.innerHTML = `
+    <select onchange="calcRecetaEdit('${recetaId}')" style="flex:2;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
+      <option value="">-- Ingrediente --</option>
+      ${ingsTodos.map(([iid,i]) => `<option value="${iid}">${i.nombre} (${i.unidad})</option>`).join('')}
+    </select>
+    <input type="number" placeholder="Cant." step="0.01" min="0" oninput="calcRecetaEdit('${recetaId}')"
+      style="flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
+    <button onclick="this.parentElement.remove();calcRecetaEdit('${recetaId}');" class="btn btn-red btn-sm">✕</button>
+  `;
+  document.getElementById('er-ings-lista').appendChild(div);
+}
+
+function addRecEmpaqueEdit(recetaId) {
+  const empaquesTodos = Object.entries(state.ingredientes).filter(([,i]) => i.tipo==='empaque').sort((a,b)=>a[1].nombre.localeCompare(b[1].nombre));
+  const div = document.createElement('div');
+  div.className = 'rec-ing-line';
+  div.innerHTML = `
+    <select onchange="calcRecetaEdit('${recetaId}')" style="flex:2;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
+      <option value="">-- Empaque --</option>
+      ${empaquesTodos.map(([iid,i]) => `<option value="${iid}">${i.nombre} (${i.unidad})</option>`).join('')}
+    </select>
+    <input type="number" placeholder="Cant. x porción" step="0.01" min="0" oninput="calcRecetaEdit('${recetaId}')"
+      style="flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
+    <button onclick="this.parentElement.remove();calcRecetaEdit('${recetaId}');" class="btn btn-red btn-sm">✕</button>
+  `;
+  document.getElementById('er-empaques-lista').appendChild(div);
+}
+
+function calcRecetaEdit(recetaId) {
+  const porciones = parseFloat(document.getElementById('er-porciones').value) || 1;
+  let costoIngs = 0;
+  document.querySelectorAll('#er-ings-lista .rec-ing-line').forEach(row => {
+    const sel = row.querySelector('select');
+    const inp = row.querySelector('input[type=number]');
+    if (!sel || !inp) return;
+    const ing = state.ingredientes[sel.value];
+    const cant = parseFloat(inp.value) || 0;
+    if (!ing || !cant) return;
+    costoIngs += ing.precioPorUnidad * cant;
+  });
+  const costoPorcion = costoIngs / porciones;
+  document.getElementById('erc-costo-total').textContent = moneda(costoIngs);
+  document.getElementById('erc-costo-porcion').textContent = moneda(costoPorcion);
+
+  const precio = parseFloat(document.getElementById('er-precio').value);
+  const margen = parseFloat(document.getElementById('er-margen').value);
+  if (precio) {
+    document.getElementById('erc-ganancia').textContent = moneda(precio - costoPorcion);
+    if (!margen) document.getElementById('er-margen').value = costoPorcion > 0 ? (((precio-costoPorcion)/precio)*100).toFixed(1) : '';
+  } else if (margen) {
+    const precioCalc = costoPorcion / (1 - margen/100);
+    document.getElementById('er-precio').value = precioCalc.toFixed(2);
+    document.getElementById('erc-ganancia').textContent = moneda(precioCalc - costoPorcion);
+  }
+  return { costoIngs, costoPorcion };
+}
+
+function calcDesdeEdit(recetaId, fuente) {
+  const { costoPorcion } = calcRecetaEdit(recetaId);
+  if (!costoPorcion) return;
+  if (fuente === 'precio') {
+    const precio = parseFloat(document.getElementById('er-precio').value) || 0;
+    if (precio > 0) {
+      document.getElementById('er-margen').value = (((precio-costoPorcion)/precio)*100).toFixed(1);
+      document.getElementById('erc-ganancia').textContent = moneda(precio - costoPorcion);
+    }
+  } else {
+    const margen = parseFloat(document.getElementById('er-margen').value) || 0;
+    if (margen > 0 && margen < 100) {
+      const precio = costoPorcion / (1 - margen/100);
+      document.getElementById('er-precio').value = precio.toFixed(2);
+      document.getElementById('erc-ganancia').textContent = moneda(precio - costoPorcion);
+    }
+  }
+}
+
+function guardarEdicionReceta(id) {
+  const nombre = document.getElementById('er-nombre').value.trim();
+  const porciones = parseFloat(document.getElementById('er-porciones').value) || 0;
+  const categoria = document.getElementById('er-categoria').value;
+  const precioVenta = parseFloat(document.getElementById('er-precio').value) || 0;
+  const margen = parseFloat(document.getElementById('er-margen').value) || 0;
+
+  if (!nombre || !porciones) { notif('notif-rec','Ingresa nombre y porciones','red'); return; }
+
+  const ingredientes = [];
+  document.querySelectorAll('#er-ings-lista .rec-ing-line').forEach(row => {
+    const sel = row.querySelector('select');
+    const inp = row.querySelector('input[type=number]');
+    if (!sel || !inp) return;
+    const ing = state.ingredientes[sel.value];
+    const cant = parseFloat(inp.value) || 0;
+    if (!ing || !cant) return;
+    ingredientes.push({ ingId: sel.value, nombre: ing.nombre, cantidad: cant, unidad: ing.unidad });
+  });
+
+  const empaques = [];
+  document.querySelectorAll('#er-empaques-lista .rec-ing-line').forEach(row => {
+    const sel = row.querySelector('select');
+    const inp = row.querySelector('input[type=number]');
+    if (!sel || !inp) return;
+    const ing = state.ingredientes[sel.value];
+    const cant = parseFloat(inp.value) || 0;
+    if (!ing || !cant) return;
+    empaques.push({ ingId: sel.value, nombre: ing.nombre, cantidadPorPorcion: cant, unidad: ing.unidad });
+  });
+
+  if (!ingredientes.length) { notif('notif-rec','Agrega al menos un ingrediente','red'); return; }
+
+  const { costoIngs, costoPorcion } = calcRecetaEdit(id);
+
+  db.ref('recetas/' + id).update({
+    nombre, porciones, categoria, ingredientes, empaques,
+    costoTotal: costoIngs, costoPorcion, precioVenta, margen
+  }).then(() => {
+    closeModal('modal-editar-receta');
+    notif('notif-rec', `✅ ${nombre} actualizada`, 'green');
+  }).catch(e => notif('notif-rec','Error: '+e.message,'red'));
+}
+
+// ══════════════════════════════════════════
+// MENÚ DEL DÍA
+// ══════════════════════════════════════════
+function renderMenuSelector() {
+  const div = document.getElementById('menu-selector');
+  const recs = Object.entries(state.recetas).sort((a,b) => a[1].nombre.localeCompare(b[1].nombre));
+  if (!recs.length) {
+    div.innerHTML = '<div class="empty"><span class="e-icon">📖</span><p>Primero crea algunas recetas.</p></div>';
+    return;
+  }
+  div.innerHTML = recs.map(([id, r]) => `
+    <div class="card" style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="verReceta('${id}')">
+      <div style="flex:1;">
+        <div class="card-title">${r.nombre}</div>
+        <div class="card-sub">${r.categoria} · ${moneda(r.costoPorcion)}/porción</div>
+      </div>
+      <span class="badge badge-gold">Ver →</span>
+    </div>
+  `).join('');
+}
+
+function renderMenuActivo() {
+  const div = document.getElementById('menu-activo');
+  const items = Object.entries(state.menuDia);
+  if (!items.length) {
+    div.innerHTML = '<div class="empty"><span class="e-icon">🍽</span><p>Selecciona recetas arriba para armar el menú.</p></div>';
+    return;
+  }
+  const vendidas = porcionesVendidasHoy();
+  div.innerHTML = items.map(([itemId, item]) => {
+    const rec = state.recetas[item.recetaId] || {};
+    const vendido = vendidas[item.recetaId] || 0;
+    const disponible = Math.max(0, item.porciones - vendido);
+    const agotado = !item._local && disponible <= 0;
+    return `
+      <div class="menu-item-row">
+        <span class="mi-name">${rec.nombre || '—'} ${agotado ? '<span class=\"badge badge-red\">Agotado</span>' : ''}</span>
+        <span class="mi-porciones">${item._local ? item.porciones + ' porciones' : disponible + ' disp. / ' + item.porciones}</span>
+        <span class="mi-costo">${moneda(item.costoTotal)}</span>
+        <button class="btn btn-red btn-sm" onclick="quitarDelMenu('${itemId}')">✕</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function quitarDelMenu(itemId) {
+  delete state.menuDia[itemId];
+  renderMenuActivo();
+}
+
+function publicarMenu() {
+  const items = Object.entries(state.menuDia);
+  if (!items.length) { notif('notif-menu','Agrega al menos una receta al menú','red'); return; }
+
+  // Verificar si hay faltantes de stock antes de publicar
+  const faltantes = [];
+  items.forEach(([itemId, item]) => {
+    const rec = state.recetas[item.recetaId];
+    if (!rec) return;
+    const factor = item.porciones / rec.porciones;
+    rec.ingredientes.forEach(ing => {
+      const cantNecesaria = ing.cantidad * factor;
+      const ingData = state.ingredientes[ing.ingId];
+      const stockDisp = ingData ? (ingData.stock || 0) : 0;
+      if (stockDisp < cantNecesaria) {
+        faltantes.push(`${ing.nombre} (necesitas ${cantNecesaria.toFixed(2)} ${ing.unidad}, tienes ${stockDisp.toFixed(2)})`);
+      }
+    });
+  });
+
+  if (faltantes.length) {
+    const continuar = confirm(
+      `⚠️ Stock insuficiente para:\n\n${faltantes.join('\n')}\n\n` +
+      `Si continúas, el stock de esos ingredientes quedará en 0 y se asume el costo igual. ¿Agregar de todas formas?`
+    );
+    if (!continuar) return;
+  }
+
+  const updates = {};
+  const stockUpdates = {};
+
+  items.forEach(([itemId, item]) => {
+    const rec = state.recetas[item.recetaId];
+    if (!rec) return;
+    const factor = item.porciones / rec.porciones;
+
+    // Guardar item en menú del día
+    updates['menuDia/' + hoy() + '/' + itemId] = {
+      recetaId: item.recetaId,
+      porciones: item.porciones,
+      costoTotal: item.costoTotal
+    };
+
+    // Descontar stock por ingrediente
+    rec.ingredientes.forEach(ing => {
+      const cantUsada = ing.cantidad * factor;
+      const ingData = state.ingredientes[ing.ingId];
+      if (!ingData) return;
+      const nuevoStock = Math.max(0, (ingData.stock || 0) - cantUsada);
+      stockUpdates[ing.ingId] = nuevoStock;
+    });
+  });
+
+  // Aplicar descuento de stock
+  Object.entries(stockUpdates).forEach(([ingId, nuevoStock]) => {
+    updates['ingredientes/' + ingId + '/stock'] = nuevoStock;
+  });
+
+  db.ref().update(updates)
+    .then(() => {
+      notif('notif-menu', '✅ Menú publicado — stock descontado', 'green');
+      state.menuDia = {};
+    })
+    .catch(e => notif('notif-menu','Error: '+e.message,'red'));
+}
+
+// ══════════════════════════════════════════
+// VENTAS
+// ══════════════════════════════════════════
+function renderVentaItems() {
+  const div = document.getElementById('venta-menu-items');
+  const items = Object.values(state.menuDia);
+  if (!items.length) {
+    div.innerHTML = '<div class="empty" style="padding:20px;"><span class="e-icon" style="font-size:1.3rem;">🍽</span><p>No hay menú activo hoy.</p></div>';
+    return;
+  }
+  const vendidas = porcionesVendidasHoy();
+  div.innerHTML = items.map(item => {
+    const rec = state.recetas[item.recetaId] || {};
+    const precio = rec.precioVenta || 0;
+    const vendido = vendidas[item.recetaId] || 0;
+    const disponible = Math.max(0, item.porciones - vendido);
+    return `
+      <div class="ing-row" style="align-items:center;">
+        <div style="flex:1;">
+          <div class="ing-name">${rec.nombre || '—'}</div>
+          <div class="ing-stock">${moneda(precio)} c/u · ${disponible} disp.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button class="btn btn-ghost btn-sm" onclick="cambiarCantVenta('${item.recetaId}',-1)">−</button>
+          <span id="vqty-${item.recetaId}" style="font-weight:700;min-width:24px;text-align:center;">0</span>
+          <button class="btn btn-ghost btn-sm" onclick="cambiarCantVenta('${item.recetaId}',1)">+</button>
+        </div>
+        <span style="font-family:var(--title);font-size:1.1rem;color:var(--gold);min-width:70px;text-align:right;" id="vsubt-${item.recetaId}">RD$0</span>
+      </div>
+    `;
+  }).join('');
+  calcVentaTotal();
+}
+
+let cantVenta = {};
+function cambiarCantVenta(recetaId, delta) {
+  cantVenta[recetaId] = Math.max(0, (cantVenta[recetaId] || 0) + delta);
+  const rec = state.recetas[recetaId] || {};
+  const precio = rec.precioVenta || 0;
+  const qty = cantVenta[recetaId];
+  const qtyEl = document.getElementById('vqty-' + recetaId);
+  const subtEl = document.getElementById('vsubt-' + recetaId);
+  if (qtyEl) qtyEl.textContent = qty;
+  if (subtEl) subtEl.textContent = moneda(qty * precio);
+
+  if (delta > 0) {
+    const menuItem = Object.values(state.menuDia).find(it => it.recetaId === recetaId);
+    if (menuItem) {
+      const vendidas = porcionesVendidasHoy();
+      const vendido = vendidas[recetaId] || 0;
+      const disponible = Math.max(0, menuItem.porciones - vendido);
+      if (qty > disponible) {
+        notif('notif-ven', `⚠️ Solo quedan ${disponible} porciones de ${rec.nombre} en el menú de hoy`, 'red');
+      }
+    }
+  }
+  calcVentaTotal();
+}
+
+let metodoPagoActual = 'efectivo';
+let pagoDivididoActivo = false;
+
+function seleccionarMetodoPago(metodo) {
+  metodoPagoActual = metodo;
+  document.querySelectorAll('#pago-metodos .pago-btn').forEach(b => b.classList.toggle('active', b.dataset.metodo === metodo));
+  calcVentaTotal();
+}
+
+function toggleDividirPago() {
+  pagoDivididoActivo = !pagoDivididoActivo;
+  document.getElementById('pago-dividido-wrap').style.display = pagoDivididoActivo ? 'block' : 'none';
+  document.getElementById('pago-metodos').style.opacity = pagoDivididoActivo ? '0.4' : '1';
+  document.getElementById('pago-metodos').style.pointerEvents = pagoDivididoActivo ? 'none' : 'auto';
+  document.getElementById('btn-dividir-pago').textContent = pagoDivididoActivo ? '✕ Cancelar pago dividido' : '¿Pago dividido entre métodos? Toca aquí';
+  calcVentaTotal();
+}
+
+function totalPlatosSeleccionados() {
+  let total = 0;
+  Object.entries(cantVenta).forEach(([recetaId, qty]) => {
+    const rec = state.recetas[recetaId] || {};
+    total += qty * (rec.precioVenta || 0);
+  });
+  return total;
+}
+
+function calcVentaTotal() {
+  const totalPlatos = totalPlatosSeleccionados();
+  let credito = 0;
+
+  if (pagoDivididoActivo) {
+    const efectivo = parseFloat(document.getElementById('v-efectivo').value) || 0;
+    const transfer = parseFloat(document.getElementById('v-transfer').value) || 0;
+    credito = parseFloat(document.getElementById('v-credito').value) || 0;
+    document.getElementById('v-total').textContent = moneda(totalPlatos || (efectivo+transfer+credito));
+  } else {
+    credito = metodoPagoActual === 'credito' ? totalPlatos : 0;
+    document.getElementById('v-total').textContent = moneda(totalPlatos);
+  }
+
+  document.getElementById('v-pendiente-row').style.display = credito > 0 ? 'flex' : 'none';
+  document.getElementById('v-pendiente').textContent = moneda(credito);
+  document.getElementById('v-credito-cliente-wrap').style.display = credito > 0 ? 'block' : 'none';
+}
+
+function registrarVenta() {
+  const totalPlatos = totalPlatosSeleccionados();
+  let efectivo = 0, transfer = 0, credito = 0;
+
+  if (pagoDivididoActivo) {
+    efectivo = parseFloat(document.getElementById('v-efectivo').value) || 0;
+    transfer = parseFloat(document.getElementById('v-transfer').value) || 0;
+    credito = parseFloat(document.getElementById('v-credito').value) || 0;
+  } else {
+    const monto = totalPlatos;
+    if (metodoPagoActual === 'efectivo') efectivo = monto;
+    if (metodoPagoActual === 'transferencia') transfer = monto;
+    if (metodoPagoActual === 'credito') credito = monto;
+  }
+
+  const total = pagoDivididoActivo ? (efectivo + transfer + credito) : totalPlatos;
+
+  if (!total) { notif('notif-ven','Selecciona al menos un plato','red'); return; }
+  if (credito > 0 && !document.getElementById('v-cliente').value.trim()) {
+    notif('notif-ven','Ingresa el nombre del cliente para el crédito','red'); return;
+  }
+
+  // Contar porciones y armar lista para descuento de empaques
+  let porciones = 0;
+  const itemsVenta = [];
+  const empaqueDescuentos = {}; // ingId -> cantidad a descontar
+
+  Object.entries(cantVenta).forEach(([recetaId, qty]) => {
+    if (qty > 0) {
+      porciones += qty;
+      const rec = state.recetas[recetaId] || {};
+      itemsVenta.push({ recetaId, nombre: rec.nombre, cantidad: qty, precioUnit: rec.precioVenta || 0 });
+
+      (rec.empaques || []).forEach(emp => {
+        const cantTotal = emp.cantidadPorPorcion * qty;
+        empaqueDescuentos[emp.ingId] = (empaqueDescuentos[emp.ingId] || 0) + cantTotal;
+      });
+    }
+  });
+
+  const venta = {
+    fecha: hoy(), timestamp: Date.now(),
+    total, efectivo, transfer, credito,
+    metodoPago: pagoDivididoActivo ? 'dividido' : metodoPagoActual,
+    cliente: document.getElementById('v-cliente').value.trim() || null,
+    items: itemsVenta, porciones
+  };
+
+  const updates = {};
+  updates['ventas/' + uid()] = venta;
+
+  // Descontar stock de empaques en el momento de la venta
+  Object.entries(empaqueDescuentos).forEach(([ingId, cant]) => {
+    const ingData = state.ingredientes[ingId];
+    if (!ingData) return;
+    const nuevoStock = Math.max(0, (ingData.stock || 0) - cant);
+    updates['ingredientes/' + ingId + '/stock'] = nuevoStock;
+  });
+
+  db.ref().update(updates)
+    .then(() => {
+      notif('notif-ven', `✅ Venta de ${moneda(total)} registrada`, 'green');
+      // Limpiar
+      cantVenta = {};
+      pagoDivididoActivo = false;
+      metodoPagoActual = 'efectivo';
+      document.getElementById('pago-dividido-wrap').style.display = 'none';
+      document.getElementById('pago-metodos').style.opacity = '1';
+      document.getElementById('pago-metodos').style.pointerEvents = 'auto';
+      document.getElementById('btn-dividir-pago').textContent = '¿Pago dividido entre métodos? Toca aquí';
+      document.querySelectorAll('#pago-metodos .pago-btn').forEach(b => b.classList.toggle('active', b.dataset.metodo === 'efectivo'));
+      ['v-efectivo','v-transfer','v-credito','v-cliente'].forEach(id => document.getElementById(id).value = '');
+      renderVentaItems();
+      calcVentaTotal();
+    })
+    .catch(e => notif('notif-ven','Error: '+e.message,'red'));
+}
+
+// ══════════════════════════════════════════
+// HISTORIAL
+// ══════════════════════════════════════════
+function cargarHistorial() {
+  const desde = document.getElementById('hist-desde').value || '2020-01-01';
+  const hasta = document.getElementById('hist-hasta').value || hoy();
+  const ventas = Object.entries(state.ventas)
+    .filter(([,v]) => v.fecha >= desde && v.fecha <= hasta)
+    .sort((a,b) => b[1].timestamp - a[1].timestamp);
+
+  let totales = { total:0, efectivo:0, transfer:0, credito:0 };
+  ventas.forEach(([,v]) => {
+    totales.total += v.total||0;
+    totales.efectivo += v.efectivo||0;
+    totales.transfer += v.transfer||0;
+    totales.credito += v.credito||0;
+  });
+
+  const statsDiv = document.getElementById('hist-stats');
+  statsDiv.style.display = 'block';
+  statsDiv.innerHTML = `
+    <div class="calc-row"><span class="calc-label">Total período</span><span class="calc-val green">${moneda(totales.total)}</span></div>
+    <div class="calc-row"><span class="calc-label">Efectivo</span><span class="calc-val">${moneda(totales.efectivo)}</span></div>
+    <div class="calc-row"><span class="calc-label">Transferencia</span><span class="calc-val">${moneda(totales.transfer)}</span></div>
+    <div class="calc-row"><span class="calc-label">Crédito pendiente</span><span class="calc-val red">${moneda(totales.credito)}</span></div>
+  `;
+
+  const lista = document.getElementById('hist-lista');
+  if (!ventas.length) {
+    lista.innerHTML = '<div class="empty"><span class="e-icon">📋</span><p>No hay ventas en ese período.</p></div>';
+    return;
+  }
+  lista.innerHTML = ventas.map(([,v]) => `
+    <div class="card" style="margin-bottom:8px;">
+      <div class="card-row">
+        <div>
+          <div class="card-title">${moneda(v.total)}</div>
+          <div class="card-sub">${fmtFecha(v.fecha)} · ${v.items ? v.items.length + ' platos' : ''}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${v.efectivo ? `<span class="badge badge-green">Ef. ${moneda(v.efectivo)}</span>` : ''}
+          ${v.transfer ? `<span class="badge badge-blue">Tr. ${moneda(v.transfer)}</span>` : ''}
+          ${v.credito ? `<span class="badge badge-red">Crd. ${moneda(v.credito)}</span>` : ''}
+        </div>
+      </div>
+      ${v.cliente ? `<div style="font-size:0.75rem;color:var(--text-mute);margin-top:4px;">👤 ${v.cliente}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+document.getElementById('topbar-fecha').textContent = new Date().toLocaleDateString('es-DO',{
+  weekday:'long', day:'numeric', month:'long'
+}).toUpperCase();
+
+// Fechas por defecto en historial
+const hoyStr = hoy();
+const inicioMes = hoyStr.substring(0,7) + '-01';
+document.getElementById('hist-desde').value = inicioMes;
+document.getElementById('hist-hasta').value = hoyStr;
+
+// Inicializar unidades
+actualizarUnidades();
+
+// Arrancar Firebase
+initListeners();
+
+// Cargar gastosDia en estado local desde Firebase
+db.ref('gastosDia').on('value', snap => {
+  state.gastosDia = snap.val() || {};
+  renderDashboard();
+});
+</script>
+</body>
+</html>
