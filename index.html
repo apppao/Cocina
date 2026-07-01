@@ -775,6 +775,64 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
   </div>
 </div>
 
+<!-- ══════════════ PÁGINA: CRÉDITOS ══════════════ -->
+<div class="page" id="page-creditos">
+  <div class="page-title">📒 Créditos</div>
+  <div id="notif-cred" class="notif"></div>
+
+  <div class="calc-box" style="margin-bottom:16px;">
+    <div class="calc-row">
+      <span class="calc-label">Total por cobrar</span>
+      <span class="calc-val red" id="cred-total-pendiente">RD$0</span>
+    </div>
+    <div class="calc-row">
+      <span class="calc-label">Clientes con deuda</span>
+      <span class="calc-val gold" id="cred-count">0</span>
+    </div>
+  </div>
+
+  <div id="cred-lista"></div>
+</div>
+
+<!-- ══════════════ PÁGINA: AJUSTES ══════════════ -->
+<div class="page" id="page-ajustes">
+  <div class="page-title">⚙️ Ajustes</div>
+  <div id="notif-ajustes" class="notif"></div>
+
+  <div class="section-label">Mi negocio</div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="field">
+      <label>Nombre del negocio</label>
+      <input type="text" id="aj-nombre" placeholder="Ej: Cocina de Loraine">
+    </div>
+    <div class="field">
+      <label>Logo (imagen)</label>
+      <div class="upload-area" style="padding:14px;">
+        <input type="file" accept="image/*" onchange="cargarLogo(this)">
+        <p>Toca para subir logo</p>
+        <img id="aj-logo-preview" style="max-height:80px;max-width:160px;display:none;margin-top:8px;border-radius:4px;">
+      </div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:6px;" onclick="quitarLogo()">Quitar logo</button>
+    </div>
+    <button class="btn btn-gold btn-full" onclick="guardarAjustes()">Guardar</button>
+  </div>
+
+  <div class="section-label">Datos y respaldo</div>
+  <div class="card">
+    <div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:12px;line-height:1.6;">
+      Descarga una copia de todos tus datos (ingredientes, recetas, ventas) como archivo JSON. Guárdalo en un lugar seguro.
+    </div>
+    <button class="btn btn-ghost btn-full" onclick="exportarDatos()">⬇️ Exportar respaldo</button>
+    <div style="margin-top:10px;">
+      <div style="font-size:0.75rem;color:var(--text-mute);margin-bottom:6px;">Restaurar desde respaldo:</div>
+      <div class="upload-area" style="padding:12px;">
+        <input type="file" accept=".json" onchange="importarRespaldo(this)">
+        <p>Toca para subir archivo .json</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
   <button class="bnav-btn active" onclick="goPage('dashboard',this)">
@@ -783,7 +841,7 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
   </button>
   <button class="bnav-btn" onclick="goPage('ingredientes',this)">
     <span class="icon">📦</span>
-    <span class="label">Ingredientes</span>
+    <span class="label">Insumos</span>
   </button>
   <button class="bnav-btn" onclick="goPage('recetas',this)">
     <span class="icon">📖</span>
@@ -796,6 +854,14 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
   <button class="bnav-btn" onclick="goPage('ventas',this)">
     <span class="icon">💰</span>
     <span class="label">Ventas</span>
+  </button>
+  <button class="bnav-btn" onclick="goPage('creditos',this)">
+    <span class="icon">📒</span>
+    <span class="label">Créditos</span>
+  </button>
+  <button class="bnav-btn" onclick="goPage('ajustes',this)">
+    <span class="icon">⚙️</span>
+    <span class="label">Ajustes</span>
   </button>
 </nav>
 
@@ -851,6 +917,28 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
       <button class="modal-close" onclick="closeModal('modal-alertas')">✕</button>
     </div>
     <div id="al-contenido"></div>
+  </div>
+</div>
+
+<!-- MODAL: ELIMINAR / CORREGIR VENTA -->
+<div class="modal-overlay" id="modal-venta-detalle">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span>Detalle de venta</span>
+      <button class="modal-close" onclick="closeModal('modal-venta-detalle')">✕</button>
+    </div>
+    <div id="vd-contenido"></div>
+  </div>
+</div>
+
+<!-- MODAL: PAGO DE CRÉDITO -->
+<div class="modal-overlay" id="modal-pago-credito">
+  <div class="modal-box">
+    <div class="modal-title">
+      <span>Registrar pago</span>
+      <button class="modal-close" onclick="closeModal('modal-pago-credito')">✕</button>
+    </div>
+    <div id="pc-contenido"></div>
   </div>
 </div>
 
@@ -960,6 +1048,7 @@ function initListeners() {
   db.ref('ventas').on('value', snap => {
     state.ventas = snap.val() || {};
     renderDashboard();
+    renderCreditos();
   });
 }
 
@@ -972,6 +1061,7 @@ function goPage(id, btn) {
   document.getElementById('page-' + id).classList.add('active');
   btn.classList.add('active');
   window.scrollTo(0, 0);
+  if (id === 'creditos') renderCreditos();
 }
 
 function switchTab(prefix, id, btn) {
@@ -1062,7 +1152,7 @@ function abrirAlertasStock() {
 
 function renderDashMenuResumen() {
   const div = document.getElementById('dash-menu');
-  const items = Object.values(state.menuDia);
+  const items = Object.values(state.menuDia).filter(item => !item._local);
   if (!items.length) {
     div.innerHTML = '<div class="empty"><span class="e-icon">🍽</span><p>No hay menú configurado para hoy.</p></div>';
     return;
@@ -1075,7 +1165,7 @@ function renderDashMenuResumen() {
     const agotado = disponible <= 0;
     return `
       <div class="menu-item-row">
-        <span class="mi-name">${rec.nombre || '—'} ${agotado ? '<span class=\"badge badge-red\">Agotado</span>' : ''}</span>
+        <span class="mi-name">${rec.nombre || '—'} ${agotado ? '<span class="badge badge-red">Agotado</span>' : ''}</span>
         <span class="mi-porciones">${agotado ? '0' : disponible} disp.</span>
         <span class="mi-costo">${moneda(item.costoTotal)}</span>
       </div>
@@ -1294,43 +1384,84 @@ function confirmarCompra(id) {
 function cargarExcel(input) {
   const file = input.files[0];
   if (!file) return;
+  const prev = document.getElementById('excel-preview');
+  prev.innerHTML = '<div class="notif show-gold">Procesando archivo...</div>';
+
+  const esXlsx = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+
+  if (esXlsx) {
+    // Usar SheetJS para .xlsx
+    if (typeof XLSX === 'undefined') {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      script.onload = () => procesarXlsx(file, prev);
+      script.onerror = () => { prev.innerHTML = '<div class="notif show-red">Error cargando librería XLSX. Usa CSV.</div>'; };
+      document.head.appendChild(script);
+    } else {
+      procesarXlsx(file, prev);
+    }
+  } else {
+    // CSV
+    const reader = new FileReader();
+    reader.onload = e => {
+      const text = e.target.result;
+      const datos = parsearCSV(text);
+      mostrarPreviewExcel(datos, prev);
+    };
+    reader.readAsText(file, 'UTF-8');
+  }
+}
+
+function procesarXlsx(file, prev) {
   const reader = new FileReader();
   reader.onload = e => {
-    const text = e.target.result;
-    const lineas = text.split('\n').filter(l => l.trim());
+    const data = new Uint8Array(e.target.result);
+    const wb = XLSX.read(data, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
     const datos = [];
-    // Detectar separador
-    const sep = text.includes(';') ? ';' : ',';
-    lineas.slice(1).forEach(linea => {
-      const cols = linea.split(sep).map(c => c.trim().replace(/"/g,''));
-      if (cols.length < 6) return;
-      const [nombre, tipo, cat, unidad, cantCompra, precio, stock, stockMin] = cols;
+    rows.slice(1).forEach(cols => {
+      if (!cols[0]) return;
+      const [nombre, tipo, cat, unidad, cantCompra, precio, stock, stockMin] = cols.map(c => String(c).trim());
       if (!nombre || !cat || !unidad) return;
       const cp = parseFloat(cantCompra) || 1;
       const pr = parseFloat(precio) || 0;
-      const tipoNorm = (tipo || '').toLowerCase().trim() === 'empaque' ? 'empaque' : 'comida';
-      datos.push({
-        nombre, tipo: tipoNorm, cat: cat.toLowerCase(), unidad,
-        cantCompra: cp, precio: pr,
-        precioPorUnidad: pr / cp,
-        stock: parseFloat(stock) || 0,
-        stockMin: parseFloat(stockMin) || 0
-      });
+      const tipoNorm = (tipo||'').toLowerCase() === 'empaque' ? 'empaque' : 'comida';
+      datos.push({ nombre, tipo: tipoNorm, cat: cat.toLowerCase(), unidad, cantCompra: cp, precio: pr, precioPorUnidad: pr/cp, stock: parseFloat(stock)||0, stockMin: parseFloat(stockMin)||0 });
     });
-
-    const prev = document.getElementById('excel-preview');
-    if (!datos.length) {
-      prev.innerHTML = '<div class="notif show-red">No se encontraron datos válidos. Verifica el formato.</div>';
-      return;
-    }
-    prev.innerHTML = `
-      <div class="notif show-gold">${datos.length} ingredientes encontrados</div>
-      ${datos.slice(0,5).map(d => `<div class="ing-row"><span class="ing-name">${d.nombre}</span><span class="ing-stock">${d.cantCompra} ${d.unidad}</span><span class="ing-price">${moneda(d.precioPorUnidad)}/${d.unidad}</span></div>`).join('')}
-      ${datos.length > 5 ? `<div style="font-size:0.75rem;color:var(--text-mute);text-align:center;padding:6px;">... y ${datos.length-5} más</div>` : ''}
-      <button class="btn btn-gold btn-full" style="margin-top:12px;" onclick="importarExcel(${JSON.stringify(datos).replace(/"/g,'&quot;')})">Importar todos</button>
-    `;
+    mostrarPreviewExcel(datos, prev);
   };
-  reader.readAsText(file, 'UTF-8');
+  reader.readAsArrayBuffer(file);
+}
+
+function parsearCSV(text) {
+  const lineas = text.split(/\r?\n/).filter(l => l.trim());
+  const sep = (lineas[0] || '').includes(';') ? ';' : ',';
+  const datos = [];
+  lineas.slice(1).forEach(linea => {
+    const cols = linea.split(sep).map(c => c.trim().replace(/^"|"$/g,''));
+    if (cols.length < 5 || !cols[0]) return;
+    const [nombre, tipo, cat, unidad, cantCompra, precio, stock, stockMin] = cols;
+    if (!nombre || !cat || !unidad) return;
+    const cp = parseFloat(cantCompra) || 1;
+    const pr = parseFloat(precio) || 0;
+    const tipoNorm = (tipo||'').toLowerCase() === 'empaque' ? 'empaque' : 'comida';
+    datos.push({ nombre, tipo: tipoNorm, cat: cat.toLowerCase(), unidad, cantCompra: cp, precio: pr, precioPorUnidad: pr/cp, stock: parseFloat(stock)||0, stockMin: parseFloat(stockMin)||0 });
+  });
+  return datos;
+}
+
+function mostrarPreviewExcel(datos, prev) {
+  if (!datos.length) {
+    prev.innerHTML = '<div class="notif show-red">No se encontraron datos. Verifica el formato (encabezados en fila 1).</div>';
+    return;
+  }
+  prev.innerHTML = `
+    <div class="notif show-gold">${datos.length} ingredientes encontrados</div>
+    ${datos.slice(0,5).map(d => `<div class="ing-row"><span class="ing-name">${d.tipo==='empaque'?'🥡 ':''}${d.nombre}</span><span class="ing-stock">${d.cantCompra} ${d.unidad}</span><span class="ing-price">${moneda(d.precioPorUnidad)}/${d.unidad}</span></div>`).join('')}
+    ${datos.length > 5 ? `<div style="font-size:0.75rem;color:var(--text-mute);text-align:center;padding:6px;">... y ${datos.length-5} más</div>` : ''}
+    <button class="btn btn-gold btn-full" style="margin-top:12px;" onclick='importarExcel(${JSON.stringify(datos)})'>Importar todos</button>
+  `;
 }
 
 function importarExcel(datos) {
@@ -2177,22 +2308,249 @@ function cargarHistorial() {
     lista.innerHTML = '<div class="empty"><span class="e-icon">📋</span><p>No hay ventas en ese período.</p></div>';
     return;
   }
-  lista.innerHTML = ventas.map(([,v]) => `
+  lista.innerHTML = ventas.map(([id, v]) => `
     <div class="card" style="margin-bottom:8px;">
       <div class="card-row">
         <div>
           <div class="card-title">${moneda(v.total)}</div>
-          <div class="card-sub">${fmtFecha(v.fecha)} · ${v.items ? v.items.length + ' platos' : ''}</div>
+          <div class="card-sub">${fmtFecha(v.fecha)} · ${v.items ? v.items.map(i=>i.nombre).join(', ') : '—'}</div>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
           ${v.efectivo ? `<span class="badge badge-green">Ef. ${moneda(v.efectivo)}</span>` : ''}
           ${v.transfer ? `<span class="badge badge-blue">Tr. ${moneda(v.transfer)}</span>` : ''}
           ${v.credito ? `<span class="badge badge-red">Crd. ${moneda(v.credito)}</span>` : ''}
         </div>
       </div>
       ${v.cliente ? `<div style="font-size:0.75rem;color:var(--text-mute);margin-top:4px;">👤 ${v.cliente}</div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-ghost btn-sm" onclick="verDetalleVenta('${id}')">Ver detalle</button>
+        <button class="btn btn-red btn-sm" onclick="eliminarVenta('${id}')">🗑 Eliminar</button>
+      </div>
     </div>
   `).join('');
+}
+
+function verDetalleVenta(id) {
+  const v = state.ventas[id];
+  if (!v) return;
+  const cont = document.getElementById('vd-contenido');
+  cont.innerHTML = `
+    <div class="calc-box" style="margin-bottom:12px;">
+      <div class="calc-row"><span class="calc-label">Fecha</span><span>${fmtFecha(v.fecha)}</span></div>
+      <div class="calc-row"><span class="calc-label">Total</span><span class="calc-val gold">${moneda(v.total)}</span></div>
+      ${v.efectivo ? `<div class="calc-row"><span class="calc-label">Efectivo</span><span>${moneda(v.efectivo)}</span></div>` : ''}
+      ${v.transfer ? `<div class="calc-row"><span class="calc-label">Transferencia</span><span>${moneda(v.transfer)}</span></div>` : ''}
+      ${v.credito ? `<div class="calc-row"><span class="calc-label">Crédito</span><span class="calc-val red">${moneda(v.credito)}</span></div>` : ''}
+      ${v.cliente ? `<div class="calc-row"><span class="calc-label">Cliente</span><span>${v.cliente}</span></div>` : ''}
+    </div>
+    ${v.items && v.items.length ? `
+      <div class="section-label">Platos</div>
+      ${v.items.map(i => `
+        <div class="ing-row">
+          <span class="ing-name">${i.nombre}</span>
+          <span class="ing-stock">${i.cantidad} porc.</span>
+          <span class="ing-price">${moneda(i.precioUnit * i.cantidad)}</span>
+        </div>
+      `).join('')}
+    ` : ''}
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <button class="btn btn-red btn-full" onclick="eliminarVenta('${id}');closeModal('modal-venta-detalle');">🗑 Eliminar venta</button>
+    </div>
+  `;
+  openModal('modal-venta-detalle');
+}
+
+function eliminarVenta(id) {
+  if (!confirm('¿Eliminar esta venta? Esta acción no se puede deshacer.')) return;
+  db.ref('ventas/' + id).remove().then(() => {
+    notif('notif-ven','✅ Venta eliminada','green');
+    cargarHistorial();
+    renderDashboard();
+  });
+}
+
+// ══════════════════════════════════════════
+// CRÉDITOS
+// ══════════════════════════════════════════
+function renderCreditos() {
+  const ventas = Object.entries(state.ventas);
+  // Agrupar créditos pendientes por cliente
+  const clientes = {};
+  ventas.forEach(([id, v]) => {
+    if (!v.credito || v.credito <= 0) return;
+    const nombre = v.cliente || 'Sin nombre';
+    if (!clientes[nombre]) clientes[nombre] = { deuda: 0, ventaIds: [], ultimo: '' };
+    const pagado = v.creditoPagado || 0;
+    const pendiente = v.credito - pagado;
+    if (pendiente > 0) {
+      clientes[nombre].deuda += pendiente;
+      clientes[nombre].ventaIds.push(id);
+      if (v.fecha > clientes[nombre].ultimo) clientes[nombre].ultimo = v.fecha;
+    }
+  });
+
+  const entradas = Object.entries(clientes).filter(([,d]) => d.deuda > 0);
+  const totalPendiente = entradas.reduce((s,[,d]) => s + d.deuda, 0);
+  const credTotalEl = document.getElementById('cred-total-pendiente');
+  const credCountEl = document.getElementById('cred-count');
+  if (credTotalEl) credTotalEl.textContent = moneda(totalPendiente);
+  if (credCountEl) credCountEl.textContent = entradas.length;
+
+  const lista = document.getElementById('cred-lista');
+  if (!lista) return;
+  if (!entradas.length) {
+    lista.innerHTML = '<div class="empty"><span class="e-icon">✅</span><p>No hay créditos pendientes.</p></div>';
+    return;
+  }
+  lista.innerHTML = entradas.sort((a,b) => b[1].deuda - a[1].deuda).map(([nombre, d]) => `
+    <div class="card" style="margin-bottom:10px;">
+      <div class="card-row">
+        <div>
+          <div class="card-title">👤 ${nombre}</div>
+          <div class="card-sub">Último: ${fmtFecha(d.ultimo)}</div>
+        </div>
+        <span style="font-family:var(--title);font-size:1.5rem;color:var(--red);">${moneda(d.deuda)}</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-green btn-sm" onclick="abrirPagoCredito('${nombre}',${d.deuda})">💰 Registrar pago</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function abrirPagoCredito(nombre, deudaTotal) {
+  const cont = document.getElementById('pc-contenido');
+  cont.innerHTML = `
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-title">👤 ${nombre}</div>
+      <div class="card-sub">Deuda total: ${moneda(deudaTotal)}</div>
+    </div>
+    <div class="field">
+      <label>Monto que abona (RD$)</label>
+      <input type="number" id="pc-monto" placeholder="${deudaTotal}" step="0.01">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-green btn-full" onclick="confirmarPagoCredito('${nombre}',${deudaTotal})">Confirmar pago</button>
+      <button class="btn btn-ghost" onclick="confirmarPagoCredito('${nombre}',${deudaTotal},true)">Saldar todo</button>
+    </div>
+  `;
+  openModal('modal-pago-credito');
+}
+
+function confirmarPagoCredito(nombre, deudaTotal, saldarTodo = false) {
+  const monto = saldarTodo ? deudaTotal : (parseFloat(document.getElementById('pc-monto').value) || 0);
+  if (!monto) { notif('notif-cred','Ingresa un monto','red'); return; }
+
+  // Registrar pago como venta especial de tipo "abono"
+  const abono = {
+    fecha: hoy(), timestamp: Date.now(),
+    total: -monto, efectivo: monto, transfer: 0, credito: -monto,
+    cliente: nombre, tipo: 'abono',
+    items: []
+  };
+  db.ref('ventas/' + uid()).set(abono).then(() => {
+    closeModal('modal-pago-credito');
+    notif('notif-cred', `✅ Pago de ${moneda(monto)} registrado para ${nombre}`, 'green');
+    renderCreditos();
+    renderDashboard();
+  });
+}
+
+// ══════════════════════════════════════════
+// AJUSTES (Settings + Logo + Export)
+// ══════════════════════════════════════════
+let logoBase64 = null;
+
+function cargarAjustes() {
+  db.ref('ajustes').once('value', snap => {
+    const aj = snap.val() || {};
+    if (aj.nombre) document.getElementById('aj-nombre').value = aj.nombre;
+    if (aj.logo) {
+      logoBase64 = aj.logo;
+      const img = document.getElementById('aj-logo-preview');
+      img.src = aj.logo; img.style.display = 'block';
+      // Update topbar brand with logo or name
+      actualizarTopbar(aj.nombre, aj.logo);
+    } else if (aj.nombre) {
+      actualizarTopbar(aj.nombre, null);
+    }
+  });
+}
+
+function actualizarTopbar(nombre, logo) {
+  const brand = document.querySelector('.topbar-brand');
+  if (!brand) return;
+  if (logo) {
+    brand.innerHTML = `<img src="${logo}" style="height:30px;border-radius:4px;"> <span>${nombre || 'LORAINE'}</span>`;
+  } else if (nombre) {
+    brand.textContent = nombre.toUpperCase();
+  }
+  document.title = nombre || 'Loraine Cocina';
+}
+
+function cargarLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    logoBase64 = e.target.result;
+    const img = document.getElementById('aj-logo-preview');
+    img.src = e.target.result; img.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+
+function quitarLogo() {
+  logoBase64 = null;
+  const img = document.getElementById('aj-logo-preview');
+  img.src = ''; img.style.display = 'none';
+}
+
+function guardarAjustes() {
+  const nombre = document.getElementById('aj-nombre').value.trim();
+  const data = { nombre: nombre || 'Mi Cocina' };
+  if (logoBase64) data.logo = logoBase64;
+  db.ref('ajustes').set(data).then(() => {
+    notif('notif-ajustes','✅ Ajustes guardados','green');
+    actualizarTopbar(data.nombre, data.logo || null);
+  }).catch(e => notif('notif-ajustes','Error: '+e.message,'red'));
+}
+
+// ══════════════════════════════════════════
+// EXPORTAR / IMPORTAR RESPALDO
+// ══════════════════════════════════════════
+function exportarDatos() {
+  db.ref('/').once('value', snap => {
+    const datos = snap.val() || {};
+    const json = JSON.stringify(datos, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fecha = hoy();
+    a.href = url;
+    a.download = `loraine-cocina-respaldo-${fecha}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    notif('notif-ajustes', '✅ Respaldo descargado', 'green');
+  });
+}
+
+function importarRespaldo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (!confirm('⚠️ Esto reemplazará TODOS los datos actuales con los del archivo. ¿Continuar?')) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const datos = JSON.parse(e.target.result);
+      db.ref('/').set(datos).then(() => {
+        notif('notif-ajustes', '✅ Datos restaurados correctamente', 'green');
+      }).catch(err => notif('notif-ajustes', 'Error: ' + err.message, 'red'));
+    } catch {
+      notif('notif-ajustes', 'Archivo inválido. Solo se aceptan respaldos JSON.', 'red');
+    }
+  };
+  reader.readAsText(file);
 }
 
 // ══════════════════════════════════════════
@@ -2213,6 +2571,9 @@ actualizarUnidades();
 
 // Arrancar Firebase
 initListeners();
+
+// Cargar ajustes del negocio
+cargarAjustes();
 
 // Cargar gastosDia en estado local desde Firebase
 db.ref('gastosDia').on('value', snap => {
