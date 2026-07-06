@@ -1256,8 +1256,6 @@ function rUpdate(updates) {
   return db.ref().update(prefixed);
 }
 
-function arrancarApp() {
-
 // ══════════════════════════════════════════
 // ESTADO LOCAL (cache offline)
 // ══════════════════════════════════════════
@@ -1278,7 +1276,6 @@ const UNIDADES = {
   contable: ['unidad','docena','manojo']
 };
 
-// Factores de conversión a unidad base (lb para sólido, ml para líquido, unidad para contable)
 const CONVERSION = {
   lb: 1, kg: 2.20462, g: 0.00220462, oz: 0.0625,
   L: 1000, ml: 1, taza: 240, fl_oz: 29.5735,
@@ -1301,7 +1298,6 @@ function fmtFecha(iso) {
 }
 
 function porcionesVendidasHoy() {
-  // recetaId -> cantidad vendida hoy
   const vendidas = {};
   Object.values(state.ventas).forEach(v => {
     if (v.fecha !== hoy() || !v.items) return;
@@ -1320,6 +1316,30 @@ db.ref('.info/connected').on('value', snap => {
   dot.className = 'sync-dot' + (snap.val() ? '' : ' offline');
   dot.title = snap.val() ? 'Sincronizado' : 'Sin conexión — guardando local';
 });
+
+function arrancarApp() {
+  document.getElementById('topbar-fecha').textContent = new Date().toLocaleDateString('es-DO',{
+    weekday:'long', day:'numeric', month:'long'
+  }).toUpperCase();
+
+  const hoyStr = hoy();
+  const inicioMes = hoyStr.substring(0,7) + '-01';
+  document.getElementById('hist-desde').value = inicioMes;
+  document.getElementById('hist-hasta').value = hoyStr;
+  const movDesde = document.getElementById('mov-filtro-desde');
+  const movHasta = document.getElementById('mov-filtro-hasta');
+  if (movDesde) movDesde.value = inicioMes;
+  if (movHasta) movHasta.value = hoyStr;
+
+  actualizarUnidades();
+  initListeners();
+  cargarAjustes();
+
+  r('gastosDia').on('value', snap => {
+    state.gastosDia = snap.val() || {};
+    renderDashboard();
+  });
+}
 
 // ══════════════════════════════════════════
 // FIREBASE LISTENERS (tiempo real)
@@ -3131,39 +3151,6 @@ function iniciarTema() {
     }
   });
 }
-
-// ══════════════════════════════════════════
-// INIT — dentro de arrancarApp()
-// ══════════════════════════════════════════
-  document.getElementById('topbar-fecha').textContent = new Date().toLocaleDateString('es-DO',{
-    weekday:'long', day:'numeric', month:'long'
-  }).toUpperCase();
-
-  // Fechas por defecto en historial y movimientos
-  const hoyStr = hoy();
-  const inicioMes = hoyStr.substring(0,7) + '-01';
-  document.getElementById('hist-desde').value = inicioMes;
-  document.getElementById('hist-hasta').value = hoyStr;
-  const movDesde = document.getElementById('mov-filtro-desde');
-  const movHasta = document.getElementById('mov-filtro-hasta');
-  if (movDesde) movDesde.value = inicioMes;
-  if (movHasta) movHasta.value = hoyStr;
-
-  // Inicializar unidades
-  actualizarUnidades();
-
-  // Arrancar Firebase listeners
-  initListeners();
-
-  // Cargar ajustes del negocio
-  cargarAjustes();
-
-  // Cargar gastosDia en estado local desde Firebase
-  r('gastosDia').on('value', snap => {
-    state.gastosDia = snap.val() || {};
-    renderDashboard();
-  });
-} // fin arrancarApp()
 
 // ══════════════════════════════════════════
 // BOOT — verificar si ya tiene código guardado
