@@ -8,6 +8,7 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&display=swap');
@@ -35,6 +36,41 @@
   --body:      'Inter', sans-serif;
   --radius:    6px;
 }
+
+/* ── TEMA CLARO ── */
+[data-theme="light"] {
+  --bg:        #f5f0e8;
+  --surface:   #ffffff;
+  --surface2:  #f0ebe0;
+  --border:    #ddd8cc;
+  --border2:   #ccc6b8;
+  --gold:      #a0762a;
+  --gold-dim:  rgba(160,118,42,0.1);
+  --gold-glow: rgba(160,118,42,0.2);
+  --text:      #1a1612;
+  --text-dim:  rgba(26,22,18,0.6);
+  --text-mute: rgba(26,22,18,0.38);
+  --red:       #b91c1c;
+  --red-dim:   rgba(185,28,28,0.1);
+  --green:     #166534;
+  --green-dim: rgba(22,101,52,0.1);
+  --blue:      #1d4ed8;
+  --blue-dim:  rgba(29,78,216,0.1);
+}
+
+/* ── THEME TOGGLE BUTTON ── */
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border2);
+  color: var(--text-dim);
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 1rem;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.theme-toggle:hover { border-color: var(--gold); color: var(--gold); }
 
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html { font-size:16px; }
@@ -439,14 +475,92 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
 .sync-dot.offline { background:var(--text-mute); box-shadow:none; }
 .sync-dot.syncing { background:var(--gold); box-shadow:0 0 6px var(--gold); animation:pulse 1s infinite; }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+/* ── ACTIVATION SCREEN ── */
+.activation-screen {
+  position:fixed; inset:0; z-index:1000;
+  background:var(--bg);
+  display:flex; align-items:center; justify-content:center;
+  padding:24px;
+}
+.activation-box {
+  background:var(--surface);
+  border:1px solid var(--border2);
+  border-radius:12px;
+  padding:32px 28px;
+  width:100%; max-width:380px;
+  text-align:center;
+}
+.activation-logo {
+  font-family:var(--title);
+  font-size:2rem; letter-spacing:4px;
+  color:var(--gold); margin-bottom:6px;
+}
+.activation-sub {
+  font-size:0.75rem; color:var(--text-mute);
+  letter-spacing:1.5px; text-transform:uppercase;
+  margin-bottom:28px;
+}
+.activation-input {
+  width:100%;
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  color:var(--text);
+  padding:14px 16px;
+  font-family:monospace; font-size:1.1rem;
+  letter-spacing:3px; text-align:center;
+  text-transform:uppercase;
+  border-radius:var(--radius); outline:none;
+  margin-bottom:12px;
+  transition:border-color 0.2s;
+}
+.activation-input:focus { border-color:var(--gold); }
+.activation-input.error { border-color:var(--red); }
+.activation-error {
+  font-size:0.78rem; color:var(--red);
+  margin-bottom:12px; min-height:20px;
+}
+.activation-hint {
+  font-size:0.7rem; color:var(--text-mute);
+  margin-top:16px; line-height:1.6;
+}
 </style>
 </head>
 <body>
+
+<!-- ══════════════ PANTALLA DE ACTIVACIÓN ══════════════ -->
+<div class="activation-screen" id="activation-screen">
+  <div class="activation-box">
+    <div class="activation-logo">🍽 COCINA</div>
+    <div class="activation-sub">Sistema de gestión</div>
+    <div style="font-size:0.82rem;color:var(--text-dim);margin-bottom:20px;line-height:1.6;">
+      Ingresa el código de activación de tu negocio para continuar.
+    </div>
+    <input
+      type="text"
+      class="activation-input"
+      id="activation-code"
+      placeholder="COC-XXXX-XXXX"
+      maxlength="12"
+      oninput="formatActivationCode(this)"
+      onkeydown="if(event.key==='Enter') activarCodigo()"
+    >
+    <div class="activation-error" id="activation-error"></div>
+    <button class="btn btn-gold btn-full" id="activation-btn" onclick="activarCodigo()">
+      Activar
+    </button>
+    <div class="activation-hint">
+      Si no tienes un código, contacta al administrador.<br>
+      El código tiene el formato <strong>COC-XXXX-XXXX</strong>
+    </div>
+  </div>
+</div>
 
 <!-- TOPBAR -->
 <div class="topbar">
   <div class="topbar-brand">🍽 LORAINE</div>
   <div class="topbar-day" id="topbar-fecha"></div>
+  <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTema()" title="Cambiar tema">🌙</button>
   <div class="sync-dot" id="sync-dot" title="Sincronizado"></div>
 </div>
 
@@ -460,7 +574,7 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
     </div>
     <div class="dash-box">
       <div class="dash-val red" id="d-gastos">RD$0</div>
-      <div class="dash-lbl">Gastado</div>
+      <div class="dash-lbl">Costo vendido</div>
     </div>
     <div class="dash-box">
       <div class="dash-val gold" id="d-ganancia">RD$0</div>
@@ -508,6 +622,7 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
     <button class="tab-btn active" onclick="switchTab('ing','biblioteca',this)">Biblioteca</button>
     <button class="tab-btn" onclick="switchTab('ing','agregar',this)">+ Agregar</button>
     <button class="tab-btn" onclick="switchTab('ing','excel',this)">📊 Excel</button>
+    <button class="tab-btn" onclick="switchTab('ing','movimientos',this);cargarMovimientos()">📋 Movimientos</button>
   </div>
 
   <!-- TAB: BIBLIOTECA -->
@@ -590,6 +705,70 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
       <p>📊 Toca para subir tu Excel o CSV</p>
     </div>
     <div id="excel-preview" style="margin-top:12px;"></div>
+  </div>
+
+  <!-- TAB: MOVIMIENTOS -->
+  <div class="tab-panel" id="ing-tab-movimientos">
+    <div class="field-row" style="margin-bottom:10px;">
+      <div class="field" style="margin:0;">
+        <label>Ingrediente</label>
+        <select id="mov-filtro-ing" onchange="cargarMovimientos()">
+          <option value="">Todos</option>
+        </select>
+      </div>
+      <div class="field" style="margin:0;">
+        <label>Tipo</label>
+        <select id="mov-filtro-tipo" onchange="cargarMovimientos()">
+          <option value="">Todos</option>
+          <option value="compra">🛒 Compra</option>
+          <option value="produccion">🍳 Producción</option>
+          <option value="venta">💰 Venta</option>
+          <option value="ajuste">✏️ Ajuste</option>
+          <option value="merma">🗑 Merma</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row" style="margin-bottom:14px;">
+      <div class="field" style="margin:0;">
+        <label>Desde</label>
+        <input type="date" id="mov-filtro-desde">
+      </div>
+      <div class="field" style="margin:0;">
+        <label>Hasta</label>
+        <input type="date" id="mov-filtro-hasta">
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-sm btn-full" onclick="cargarMovimientos()" style="margin-bottom:14px;">Filtrar</button>
+    <div id="mov-lista"></div>
+
+    <hr class="div">
+    <div class="section-label">Registrar merma o ajuste manual</div>
+    <div class="card">
+      <div class="field">
+        <label>Ingrediente</label>
+        <select id="mov-manual-ing">
+          <option value="">-- Selecciona --</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <div class="field" style="margin:0;">
+          <label>Tipo</label>
+          <select id="mov-manual-tipo">
+            <option value="ajuste">✏️ Ajuste</option>
+            <option value="merma">🗑 Merma</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Cantidad</label>
+          <input type="number" id="mov-manual-cant" placeholder="0" step="0.01">
+        </div>
+      </div>
+      <div class="field">
+        <label>Nota (opcional)</label>
+        <input type="text" id="mov-manual-nota" placeholder="Ej: Se cayó, venció, corrección">
+      </div>
+      <button class="btn btn-gold btn-full" onclick="registrarMovimientoManual()">Registrar</button>
+    </div>
   </div>
 </div>
 
@@ -799,6 +978,17 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
   <div class="page-title">⚙️ Ajustes</div>
   <div id="notif-ajustes" class="notif"></div>
 
+  <div class="section-label">Apariencia</div>
+  <div class="card" style="margin-bottom:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:0.88rem;font-weight:600;">Tema de la app</div>
+        <div style="font-size:0.75rem;color:var(--text-mute);margin-top:2px;">Se adapta automáticamente a tu sistema</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="toggleTema()" id="tema-btn-ajustes">Cambiar tema</button>
+    </div>
+  </div>
+
   <div class="section-label">Mi negocio</div>
   <div class="card" style="margin-bottom:16px;">
     <div class="field">
@@ -830,6 +1020,14 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
         <p>Toca para subir archivo .json</p>
       </div>
     </div>
+  </div>
+
+  <div class="section-label">Negocio activo</div>
+  <div class="card">
+    <div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:8px;">
+      Código activo: <strong style="font-family:monospace;color:var(--gold);" id="aj-codigo-activo">—</strong>
+    </div>
+    <button class="btn btn-ghost btn-full" onclick="cerrarSesionNegocio()">🔄 Cambiar negocio</button>
   </div>
 </div>
 
@@ -944,7 +1142,8 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
 
 <script>
 // ══════════════════════════════════════════
-// FIREBASE CONFIG
+// ══════════════════════════════════════════
+// FIREBASE CONFIG — Loraine Cocina (Realtime DB)
 // ══════════════════════════════════════════
 const firebaseConfig = {
   apiKey: "AIzaSyAXOXGdq68XJ31e4ATs3ZnY1ft3gCGIav4",
@@ -956,8 +1155,109 @@ const firebaseConfig = {
   appId: "1:573058387330:web:feee61103d8d589f17939b"
 };
 
+// Firebase config del generador de códigos (Firestore — otra cuenta)
+const generadorConfig = {
+  apiKey: "AIzaSyBRYZoIdeq8Pjf7sg2dmv8Yco5LZ63wTiQ",
+  authDomain: "codigo-prestamos.firebaseapp.com",
+  projectId: "codigo-prestamos",
+  storageBucket: "codigo-prestamos.firebasestorage.app",
+  messagingSenderId: "844470558104",
+  appId: "1:844470558104:web:bf4f33a11988114b7e9fed"
+};
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+
+// Inicializar segunda app de Firebase para validar códigos
+const generadorApp = firebase.initializeApp(generadorConfig, 'generador');
+const dbGenerador = firebase.firestore(generadorApp);
+
+// ══════════════════════════════════════════
+// MULTITENANT — ID del negocio activo
+// ══════════════════════════════════════════
+let negocioId = localStorage.getItem('negocio_id') || null;
+
+// r(path) — prefija todas las rutas con negocios/COC-XXXX-XXXX/
+function r(path) {
+  return db.ref('negocios/' + negocioId + '/' + path);
+}
+
+// ══════════════════════════════════════════
+// ACTIVACIÓN DE CÓDIGO
+// ══════════════════════════════════════════
+function formatActivationCode(input) {
+  // Fuerza formato COC-XXXX-XXXX mientras el usuario escribe
+  let val = input.value.toUpperCase().replace(/[^A-Z0-9-]/g, '');
+  input.value = val;
+  document.getElementById('activation-error').textContent = '';
+  input.classList.remove('error');
+}
+
+async function activarCodigo() {
+  const codigo = document.getElementById('activation-code').value.trim().toUpperCase();
+  const errorEl = document.getElementById('activation-error');
+  const btn = document.getElementById('activation-btn');
+
+  // Validar formato básico
+  if (!/^COC-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(codigo)) {
+    errorEl.textContent = 'El formato debe ser COC-XXXX-XXXX';
+    document.getElementById('activation-code').classList.add('error');
+    return;
+  }
+
+  btn.textContent = 'Verificando...';
+  btn.disabled = true;
+
+  try {
+    const docRef = dbGenerador.collection('codigos_activacion').doc(codigo);
+    const docSnap = await docRef.get();
+
+    if (!docSnap.exists) {
+      errorEl.textContent = 'Código no encontrado. Verifica e intenta de nuevo.';
+      document.getElementById('activation-code').classList.add('error');
+      btn.textContent = 'Activar'; btn.disabled = false;
+      return;
+    }
+
+    const data = docSnap.data();
+
+    if (!data.activo) {
+      errorEl.textContent = 'Este código ha sido desactivado. Contacta al administrador.';
+      document.getElementById('activation-code').classList.add('error');
+      btn.textContent = 'Activar'; btn.disabled = false;
+      return;
+    }
+
+    if (data.app !== 'cocina') {
+      errorEl.textContent = 'Este código no es válido para Loraine Cocina.';
+      document.getElementById('activation-code').classList.add('error');
+      btn.textContent = 'Activar'; btn.disabled = false;
+      return;
+    }
+
+    // Código válido — guardar y arrancar
+    localStorage.setItem('negocio_id', codigo);
+    negocioId = codigo;
+    document.getElementById('activation-screen').style.display = 'none';
+    arrancarApp();
+
+  } catch(e) {
+    errorEl.textContent = 'Error de conexión. Verifica tu internet e intenta de nuevo.';
+    btn.textContent = 'Activar'; btn.disabled = false;
+    console.error(e);
+  }
+}
+
+// rUpdate — prefija todas las keys de un bulk update con negocios/COC.../
+function rUpdate(updates) {
+  const prefixed = {};
+  Object.entries(updates).forEach(([key, val]) => {
+    prefixed['negocios/' + negocioId + '/' + key] = val;
+  });
+  return db.ref().update(prefixed);
+}
+
+function arrancarApp() {
 
 // ══════════════════════════════════════════
 // ESTADO LOCAL (cache offline)
@@ -1026,26 +1326,27 @@ db.ref('.info/connected').on('value', snap => {
 // FIREBASE LISTENERS (tiempo real)
 // ══════════════════════════════════════════
 function initListeners() {
-  db.ref('ingredientes').on('value', snap => {
+  r('ingredientes').on('value', snap => {
     state.ingredientes = snap.val() || {};
     renderIngredientes();
     renderDashboard();
     renderMenuSelector();
     renderVentaItems();
+    poblarSelectIngredientes();
   });
-  db.ref('recetas').on('value', snap => {
+  r('recetas').on('value', snap => {
     state.recetas = snap.val() || {};
     renderRecetas();
     renderMenuSelector();
     renderVentaItems();
   });
-  db.ref('menuDia/' + hoy()).on('value', snap => {
+  r('menuDia/' + hoy()).on('value', snap => {
     state.menuDia = snap.val() || {};
     renderMenuActivo();
     renderDashMenuResumen();
     renderVentaItems();
   });
-  db.ref('ventas').on('value', snap => {
+  r('ventas').on('value', snap => {
     state.ventas = snap.val() || {};
     renderDashboard();
     renderCreditos();
@@ -1095,23 +1396,30 @@ function notif(id, msg, tipo) {
 // DASHBOARD
 // ══════════════════════════════════════════
 function renderDashboard() {
-  const ventasHoy = Object.values(state.ventas).filter(v => v.fecha === hoy());
+  const ventasHoy = Object.values(state.ventas).filter(v => v.fecha === hoy() && v.tipo !== 'abono');
   let totalVentas = 0, totalEfectivo = 0, totalTransfer = 0, totalCredito = 0, totalPorciones = 0;
+  let costoRealVentas = 0;
+
   ventasHoy.forEach(v => {
     totalVentas += v.total || 0;
     totalEfectivo += v.efectivo || 0;
     totalTransfer += v.transfer || 0;
     totalCredito += v.credito || 0;
     totalPorciones += v.porciones || 0;
+
+    // Costo real = costo por porción de cada receta vendida
+    (v.items || []).forEach(item => {
+      const rec = state.recetas[item.recetaId];
+      if (!rec) return;
+      costoRealVentas += (rec.costoPorcion || 0) * (item.cantidad || 0);
+    });
   });
 
-  // Gastos = compras del día
-  const gastosHoy = Object.values(state.gastosDia || {}).filter(g => g.fecha === hoy());
-  const totalGastos = gastosHoy.reduce((s, g) => s + (g.monto || 0), 0);
+  const gananciaNeta = totalVentas - costoRealVentas;
 
   document.getElementById('d-ventas').textContent = moneda(totalVentas);
-  document.getElementById('d-gastos').textContent = moneda(totalGastos);
-  document.getElementById('d-ganancia').textContent = moneda(totalVentas - totalGastos);
+  document.getElementById('d-gastos').textContent = moneda(costoRealVentas);
+  document.getElementById('d-ganancia').textContent = moneda(gananciaNeta);
   document.getElementById('d-porciones').textContent = totalPorciones;
   document.getElementById('d-efectivo').textContent = moneda(totalEfectivo);
   document.getElementById('d-transfer').textContent = moneda(totalTransfer);
@@ -1219,6 +1527,7 @@ function renderIngredientes() {
         </div>
         <div class="ing-price">${moneda(i.precioPorUnidad)}/${i.unidad}</div>
         <button class="btn btn-ghost btn-sm" onclick="abrirCompra('${id}')">Comprar</button>
+        <button class="btn btn-ghost btn-sm" onclick="verMovimientosIng('${id}')">📋</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirEditarIng('${id}')">✏️</button>
         <button class="btn btn-red btn-sm" onclick="eliminarIng('${id}')">✕</button>
       </div>
@@ -1245,7 +1554,7 @@ function guardarIngrediente() {
   const data = { nombre, tipo, cat, unidad, cantCompra, precio, precioPorUnidad, stock: stockIni, stockMin };
 
   dot.className = 'sync-dot syncing';
-  db.ref('ingredientes/' + id).set(data)
+  r('ingredientes/' + id).set(data)
     .then(() => {
       notif('notif-ing', `✅ ${nombre} guardado`, 'green');
       ['ing-nombre','ing-cant-compra','ing-precio','ing-stock-ini','ing-stock-min'].forEach(f => document.getElementById(f).value = '');
@@ -1253,9 +1562,19 @@ function guardarIngrediente() {
     .catch(e => notif('notif-ing', 'Error: ' + e.message, 'red'));
 }
 
+function verMovimientosIng(ingId) {
+  // Ir al tab de movimientos ya filtrado por ese ingrediente
+  const tabBtn = document.querySelector('[onclick*="movimientos"]');
+  if (tabBtn) {
+    switchTab('ing', 'movimientos', tabBtn);
+    tabBtn.classList.add('active');
+  }
+  cargarMovimientos(ingId);
+}
+
 function eliminarIng(id) {
   if (!confirm('¿Eliminar este ingrediente?')) return;
-  db.ref('ingredientes/' + id).remove();
+  r('ingredientes/' + id).remove();
 }
 
 function abrirEditarIng(id) {
@@ -1309,7 +1628,7 @@ function guardarEdicionIng(id) {
 
   if (!nombre) { notif('notif-ing','El nombre no puede quedar vacío','red'); return; }
 
-  db.ref('ingredientes/' + id).update({
+  r('ingredientes/' + id).update({
     nombre, tipo, precioPorUnidad: precioUnidad, stockMin, stock: nuevoStock
   }).then(() => {
     closeModal('modal-editar-ing');
@@ -1368,10 +1687,20 @@ function confirmarCompra(id) {
     nombre: ing.nombre, cantidad: cant, unidad, monto: precio
   };
 
-  db.ref().update(updates)
+  rUpdate(updates)
     .then(() => {
       closeModal('modal-compra');
-      // Actualizar estado local gastos
+      // Registrar movimiento
+      registrarMovimiento({
+        tipo: 'compra',
+        ingredienteId: id,
+        ingredienteNombre: ing.nombre,
+        cantidad: cantEnUnidadIng,
+        unidad: ing.unidad,
+        stockAntes: ing.stock || 0,
+        stockDespues: nuevoStock,
+        nota: `Compra: ${cant} ${unidad} a ${moneda(precio)}`
+      });
       if (!state.gastosDia) state.gastosDia = {};
       state.gastosDia[gastoId] = { fecha: hoy(), monto: precio };
       renderDashboard();
@@ -1467,7 +1796,7 @@ function mostrarPreviewExcel(datos, prev) {
 function importarExcel(datos) {
   const updates = {};
   datos.forEach(d => { updates['ingredientes/' + uid()] = d; });
-  db.ref().update(updates)
+  rUpdate(updates)
     .then(() => { document.getElementById('excel-preview').innerHTML = '<div class="notif show-green">✅ Importados correctamente</div>'; })
     .catch(e => console.error(e));
 }
@@ -1622,7 +1951,7 @@ function guardarReceta() {
     creadoEn: Date.now()
   };
 
-  db.ref('recetas/' + uid()).set(receta)
+  r('recetas/' + uid()).set(receta)
     .then(() => {
       notif('notif-rec', `✅ ${nombre} guardada`, 'green');
       // Limpiar form
@@ -1772,7 +2101,7 @@ function usarEnMenu(recetaId) {
 
 function eliminarReceta(id) {
   if (!confirm('¿Eliminar esta receta?')) return;
-  db.ref('recetas/' + id).remove();
+  r('recetas/' + id).remove();
 }
 
 function abrirEditarReceta(id) {
@@ -1968,7 +2297,7 @@ function guardarEdicionReceta(id) {
 
   const { costoIngs, costoPorcion } = calcRecetaEdit(id);
 
-  db.ref('recetas/' + id).update({
+  r('recetas/' + id).update({
     nombre, porciones, categoria, ingredientes, empaques,
     costoTotal: costoIngs, costoPorcion, precioVenta, margen
   }).then(() => {
@@ -2085,9 +2414,29 @@ function publicarMenu() {
     updates['ingredientes/' + ingId + '/stock'] = nuevoStock;
   });
 
-  db.ref().update(updates)
+  rUpdate(updates)
     .then(() => {
       notif('notif-menu', '✅ Menú publicado — stock descontado', 'green');
+      // Registrar movimientos de producción
+      Object.entries(stockUpdates).forEach(([ingId, nuevoStock]) => {
+        const ingData = state.ingredientes[ingId];
+        if (!ingData) return;
+        const menuItem = items.find(([, it]) => {
+          const rec = state.recetas[it.recetaId];
+          return rec && rec.ingredientes.some(i => i.ingId === ingId);
+        });
+        const recNombre = menuItem ? (state.recetas[menuItem[1].recetaId] || {}).nombre : '—';
+        registrarMovimiento({
+          tipo: 'produccion',
+          ingredienteId: ingId,
+          ingredienteNombre: ingData.nombre,
+          cantidad: -(Math.min(ingData.stock || 0, (ingData.stock || 0) - nuevoStock)),
+          unidad: ingData.unidad,
+          stockAntes: ingData.stock || 0,
+          stockDespues: nuevoStock,
+          nota: `Producción: ${recNombre}`
+        });
+      });
       state.menuDia = {};
     })
     .catch(e => notif('notif-menu','Error: '+e.message,'red'));
@@ -2187,14 +2536,35 @@ function calcVentaTotal() {
     const efectivo = parseFloat(document.getElementById('v-efectivo').value) || 0;
     const transfer = parseFloat(document.getElementById('v-transfer').value) || 0;
     credito = parseFloat(document.getElementById('v-credito').value) || 0;
-    document.getElementById('v-total').textContent = moneda(totalPlatos || (efectivo+transfer+credito));
+    const sumaPagos = efectivo + transfer + credito;
+    const diferencia = totalPlatos - sumaPagos;
+
+    document.getElementById('v-total').textContent = moneda(totalPlatos);
+
+    // Mostrar diferencia pendiente de asignar
+    const pendRow = document.getElementById('v-pendiente-row');
+    const pendEl = document.getElementById('v-pendiente');
+    if (totalPlatos > 0 && Math.abs(diferencia) > 0.01) {
+      pendRow.style.display = 'flex';
+      pendEl.textContent = diferencia > 0
+        ? `Falta asignar ${moneda(diferencia)}`
+        : `Excede por ${moneda(Math.abs(diferencia))}`;
+      pendEl.style.color = diferencia > 0 ? 'var(--gold)' : 'var(--red)';
+    } else if (credito > 0) {
+      pendRow.style.display = 'flex';
+      pendEl.textContent = moneda(credito);
+      pendEl.style.color = 'var(--red)';
+    } else {
+      pendRow.style.display = 'none';
+    }
   } else {
     credito = metodoPagoActual === 'credito' ? totalPlatos : 0;
     document.getElementById('v-total').textContent = moneda(totalPlatos);
+    document.getElementById('v-pendiente-row').style.display = credito > 0 ? 'flex' : 'none';
+    document.getElementById('v-pendiente').textContent = moneda(credito);
+    document.getElementById('v-pendiente').style.color = 'var(--red)';
   }
 
-  document.getElementById('v-pendiente-row').style.display = credito > 0 ? 'flex' : 'none';
-  document.getElementById('v-pendiente').textContent = moneda(credito);
   document.getElementById('v-credito-cliente-wrap').style.display = credito > 0 ? 'block' : 'none';
 }
 
@@ -2216,6 +2586,19 @@ function registrarVenta() {
   const total = pagoDivididoActivo ? (efectivo + transfer + credito) : totalPlatos;
 
   if (!total) { notif('notif-ven','Selecciona al menos un plato','red'); return; }
+
+  // Validar que pago dividido sume exactamente el total de los platos
+  if (pagoDivididoActivo && totalPlatos > 0) {
+    const diferencia = Math.abs(total - totalPlatos);
+    if (diferencia > 0.01) {
+      notif('notif-ven',
+        `El pago dividido suma ${moneda(total)} pero el total es ${moneda(totalPlatos)}. Ajusta los montos.`,
+        'red'
+      );
+      return;
+    }
+  }
+
   if (credito > 0 && !document.getElementById('v-cliente').value.trim()) {
     notif('notif-ven','Ingresa el nombre del cliente para el crédito','red'); return;
   }
@@ -2257,9 +2640,25 @@ function registrarVenta() {
     updates['ingredientes/' + ingId + '/stock'] = nuevoStock;
   });
 
-  db.ref().update(updates)
+  rUpdate(updates)
     .then(() => {
       notif('notif-ven', `✅ Venta de ${moneda(total)} registrada`, 'green');
+      // Registrar movimientos de venta (empaques)
+      Object.entries(empaqueDescuentos).forEach(([ingId, cant]) => {
+        const ingData = state.ingredientes[ingId];
+        if (!ingData) return;
+        const nuevoStock = Math.max(0, (ingData.stock || 0) - cant);
+        registrarMovimiento({
+          tipo: 'venta',
+          ingredienteId: ingId,
+          ingredienteNombre: ingData.nombre,
+          cantidad: -cant,
+          unidad: ingData.unidad,
+          stockAntes: ingData.stock || 0,
+          stockDespues: nuevoStock,
+          nota: `Venta: ${itemsVenta.map(i => i.nombre).join(', ')}`
+        });
+      });
       // Limpiar
       cantVenta = {};
       pagoDivididoActivo = false;
@@ -2362,7 +2761,7 @@ function verDetalleVenta(id) {
 
 function eliminarVenta(id) {
   if (!confirm('¿Eliminar esta venta? Esta acción no se puede deshacer.')) return;
-  db.ref('ventas/' + id).remove().then(() => {
+  r('ventas/' + id).remove().then(() => {
     notif('notif-ven','✅ Venta eliminada','green');
     cargarHistorial();
     renderDashboard();
@@ -2448,7 +2847,7 @@ function confirmarPagoCredito(nombre, deudaTotal, saldarTodo = false) {
     cliente: nombre, tipo: 'abono',
     items: []
   };
-  db.ref('ventas/' + uid()).set(abono).then(() => {
+  r('ventas/' + uid()).set(abono).then(() => {
     closeModal('modal-pago-credito');
     notif('notif-cred', `✅ Pago de ${moneda(monto)} registrado para ${nombre}`, 'green');
     renderCreditos();
@@ -2462,7 +2861,11 @@ function confirmarPagoCredito(nombre, deudaTotal, saldarTodo = false) {
 let logoBase64 = null;
 
 function cargarAjustes() {
-  db.ref('ajustes').once('value', snap => {
+  // Mostrar código activo
+  const codeEl = document.getElementById('aj-codigo-activo');
+  if (codeEl) codeEl.textContent = negocioId || '—';
+
+  r('ajustes').once('value', snap => {
     const aj = snap.val() || {};
     if (aj.nombre) document.getElementById('aj-nombre').value = aj.nombre;
     if (aj.logo) {
@@ -2510,7 +2913,7 @@ function guardarAjustes() {
   const nombre = document.getElementById('aj-nombre').value.trim();
   const data = { nombre: nombre || 'Mi Cocina' };
   if (logoBase64) data.logo = logoBase64;
-  db.ref('ajustes').set(data).then(() => {
+  r('ajustes').set(data).then(() => {
     notif('notif-ajustes','✅ Ajustes guardados','green');
     actualizarTopbar(data.nombre, data.logo || null);
   }).catch(e => notif('notif-ajustes','Error: '+e.message,'red'));
@@ -2520,7 +2923,7 @@ function guardarAjustes() {
 // EXPORTAR / IMPORTAR RESPALDO
 // ══════════════════════════════════════════
 function exportarDatos() {
-  db.ref('/').once('value', snap => {
+  r('').once('value', snap => {
     const datos = snap.val() || {};
     const json = JSON.stringify(datos, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
@@ -2543,7 +2946,7 @@ function importarRespaldo(input) {
   reader.onload = e => {
     try {
       const datos = JSON.parse(e.target.result);
-      db.ref('/').set(datos).then(() => {
+      r('').set(datos).then(() => {
         notif('notif-ajustes', '✅ Datos restaurados correctamente', 'green');
       }).catch(err => notif('notif-ajustes', 'Error: ' + err.message, 'red'));
     } catch {
@@ -2554,32 +2957,229 @@ function importarRespaldo(input) {
 }
 
 // ══════════════════════════════════════════
-// INIT
+function cerrarSesionNegocio() {
+  if (!confirm('¿Cambiar de negocio? Se te pedirá un nuevo código de activación.')) return;
+  localStorage.removeItem('negocio_id');
+  location.reload();
+}
+
 // ══════════════════════════════════════════
-document.getElementById('topbar-fecha').textContent = new Date().toLocaleDateString('es-DO',{
-  weekday:'long', day:'numeric', month:'long'
-}).toUpperCase();
+// HISTORIAL DE MOVIMIENTOS
+// ══════════════════════════════════════════
+const TIPO_MOVIMIENTO = {
+  compra:     { icon: '🛒', label: 'Compra',     color: 'var(--green)' },
+  produccion: { icon: '🍳', label: 'Producción', color: 'var(--blue)'  },
+  venta:      { icon: '💰', label: 'Venta',      color: 'var(--gold)'  },
+  ajuste:     { icon: '✏️', label: 'Ajuste',     color: 'var(--text-dim)' },
+  merma:      { icon: '🗑', label: 'Merma',      color: 'var(--red)'   }
+};
 
-// Fechas por defecto en historial
-const hoyStr = hoy();
-const inicioMes = hoyStr.substring(0,7) + '-01';
-document.getElementById('hist-desde').value = inicioMes;
-document.getElementById('hist-hasta').value = hoyStr;
+function registrarMovimiento({ tipo, ingredienteId, ingredienteNombre, cantidad, unidad, stockAntes, stockDespues, nota }) {
+  const mov = {
+    tipo,
+    ingredienteId,
+    ingredienteNombre,
+    cantidad,
+    unidad,
+    stockAntes,
+    stockDespues,
+    nota: nota || '',
+    fecha: hoy(),
+    timestamp: Date.now()
+  };
+  r('movimientos/' + uid()).set(mov).catch(e => console.error('Error registrando movimiento:', e));
+}
 
-// Inicializar unidades
-actualizarUnidades();
+function poblarSelectIngredientes() {
+  const ings = Object.entries(state.ingredientes).sort((a,b) => a[1].nombre.localeCompare(b[1].nombre));
+  const opts = '<option value="">Todos</option>' + ings.map(([id, i]) => `<option value="${id}">${i.nombre}</option>`).join('');
+  const opts2 = '<option value="">-- Selecciona --</option>' + ings.map(([id, i]) => `<option value="${id}">${i.nombre}</option>`).join('');
+  const selFiltro = document.getElementById('mov-filtro-ing');
+  const selManual = document.getElementById('mov-manual-ing');
+  if (selFiltro) selFiltro.innerHTML = opts;
+  if (selManual) selManual.innerHTML = opts2;
+}
 
-// Arrancar Firebase
-initListeners();
+function cargarMovimientos(filtroIngId) {
+  // Poblar selectores
+  poblarSelectIngredientes();
 
-// Cargar ajustes del negocio
-cargarAjustes();
+  // Aplicar filtro de ingrediente si viene desde un ingrediente específico
+  if (filtroIngId) {
+    const sel = document.getElementById('mov-filtro-ing');
+    if (sel) sel.value = filtroIngId;
+  }
 
-// Cargar gastosDia en estado local desde Firebase
-db.ref('gastosDia').on('value', snap => {
-  state.gastosDia = snap.val() || {};
-  renderDashboard();
-});
+  const ingId = document.getElementById('mov-filtro-ing')?.value || '';
+  const tipo = document.getElementById('mov-filtro-tipo')?.value || '';
+  const desde = document.getElementById('mov-filtro-desde')?.value || '2020-01-01';
+  const hasta = document.getElementById('mov-filtro-hasta')?.value || hoy();
+
+  const lista = document.getElementById('mov-lista');
+  if (!lista) return;
+  lista.innerHTML = '<div class="empty"><span class="e-icon">⏳</span><p>Cargando...</p></div>';
+
+  r('movimientos').orderByChild('timestamp').once('value', snap => {
+    const movs = [];
+    snap.forEach(child => {
+      const d = child.val();
+      if (ingId && d.ingredienteId !== ingId) return;
+      if (tipo && d.tipo !== tipo) return;
+      if (d.fecha < desde || d.fecha > hasta) return;
+      movs.push(d);
+    });
+
+    movs.reverse(); // más reciente primero
+
+    if (!movs.length) {
+      lista.innerHTML = '<div class="empty"><span class="e-icon">📋</span><p>No hay movimientos para este filtro.</p></div>';
+      return;
+    }
+
+    lista.innerHTML = movs.map(m => {
+      const t = TIPO_MOVIMIENTO[m.tipo] || { icon: '•', label: m.tipo, color: 'var(--text-dim)' };
+      const signo = m.cantidad >= 0 ? '+' : '';
+      return `
+        <div class="card" style="margin-bottom:8px;padding:12px;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.2rem;">${t.icon}</span>
+            <div style="flex:1;">
+              <div style="font-weight:600;font-size:0.88rem;">${m.ingredienteNombre}</div>
+              <div style="font-size:0.72rem;color:var(--text-mute);">${fmtFecha(m.fecha)} · <span style="color:${t.color}">${t.label}</span></div>
+              ${m.nota ? `<div style="font-size:0.72rem;color:var(--text-dim);margin-top:2px;">${m.nota}</div>` : ''}
+            </div>
+            <div style="text-align:right;">
+              <div style="font-family:var(--title);font-size:1.1rem;color:${m.cantidad >= 0 ? 'var(--green)' : 'var(--red)'};">${signo}${m.cantidad?.toFixed(2)} ${m.unidad}</div>
+              <div style="font-size:0.7rem;color:var(--text-mute);">Stock: ${m.stockDespues?.toFixed(2)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  });
+}
+
+function registrarMovimientoManual() {
+  const ingId = document.getElementById('mov-manual-ing').value;
+  const tipo = document.getElementById('mov-manual-tipo').value;
+  const cant = parseFloat(document.getElementById('mov-manual-cant').value) || 0;
+  const nota = document.getElementById('mov-manual-nota').value.trim();
+
+  if (!ingId) { notif('notif-ing', 'Selecciona un ingrediente', 'red'); return; }
+  if (!cant) { notif('notif-ing', 'Ingresa una cantidad', 'red'); return; }
+
+  const ing = state.ingredientes[ingId];
+  if (!ing) return;
+
+  const cantReal = tipo === 'merma' || tipo === 'ajuste' ? -Math.abs(cant) : cant;
+  const nuevoStock = Math.max(0, (ing.stock || 0) + cantReal);
+
+  const updates = {};
+  updates['ingredientes/' + ingId + '/stock'] = nuevoStock;
+
+  rUpdate(updates).then(() => {
+    registrarMovimiento({
+      tipo,
+      ingredienteId: ingId,
+      ingredienteNombre: ing.nombre,
+      cantidad: cantReal,
+      unidad: ing.unidad,
+      stockAntes: ing.stock || 0,
+      stockDespues: nuevoStock,
+      nota: nota || tipo
+    });
+    notif('notif-ing', `✅ ${TIPO_MOVIMIENTO[tipo]?.label} registrada`, 'green');
+    document.getElementById('mov-manual-cant').value = '';
+    document.getElementById('mov-manual-nota').value = '';
+    cargarMovimientos();
+  }).catch(e => notif('notif-ing', 'Error: ' + e.message, 'red'));
+}
+
+// ══════════════════════════════════════════
+// TEMA CLARO / OSCURO
+// ══════════════════════════════════════════
+function aplicarTema(tema) {
+  const html = document.documentElement;
+  const btn = document.getElementById('theme-toggle-btn');
+  if (tema === 'light') {
+    html.setAttribute('data-theme', 'light');
+    if (btn) btn.textContent = '☀️';
+  } else {
+    html.removeAttribute('data-theme');
+    if (btn) btn.textContent = '🌙';
+  }
+  localStorage.setItem('tema', tema);
+}
+
+function toggleTema() {
+  const actual = localStorage.getItem('tema') || 'dark';
+  aplicarTema(actual === 'dark' ? 'light' : 'dark');
+}
+
+function iniciarTema() {
+  // Detectar preferencia del sistema si no hay una guardada
+  const guardado = localStorage.getItem('tema');
+  if (guardado) {
+    aplicarTema(guardado);
+  } else {
+    const prefiereClaroSistema = window.matchMedia('(prefers-color-scheme: light)').matches;
+    aplicarTema(prefiereClaroSistema ? 'light' : 'dark');
+  }
+  // Escuchar cambios del sistema operativo
+  window.matchMedia('(prefers-color-scheme: light)').addEventListener('change', e => {
+    if (!localStorage.getItem('tema')) {
+      aplicarTema(e.matches ? 'light' : 'dark');
+    }
+  });
+}
+
+// ══════════════════════════════════════════
+// INIT — dentro de arrancarApp()
+// ══════════════════════════════════════════
+  document.getElementById('topbar-fecha').textContent = new Date().toLocaleDateString('es-DO',{
+    weekday:'long', day:'numeric', month:'long'
+  }).toUpperCase();
+
+  // Fechas por defecto en historial y movimientos
+  const hoyStr = hoy();
+  const inicioMes = hoyStr.substring(0,7) + '-01';
+  document.getElementById('hist-desde').value = inicioMes;
+  document.getElementById('hist-hasta').value = hoyStr;
+  const movDesde = document.getElementById('mov-filtro-desde');
+  const movHasta = document.getElementById('mov-filtro-hasta');
+  if (movDesde) movDesde.value = inicioMes;
+  if (movHasta) movHasta.value = hoyStr;
+
+  // Inicializar unidades
+  actualizarUnidades();
+
+  // Arrancar Firebase listeners
+  initListeners();
+
+  // Cargar ajustes del negocio
+  cargarAjustes();
+
+  // Cargar gastosDia en estado local desde Firebase
+  r('gastosDia').on('value', snap => {
+    state.gastosDia = snap.val() || {};
+    renderDashboard();
+  });
+} // fin arrancarApp()
+
+// ══════════════════════════════════════════
+// BOOT — verificar si ya tiene código guardado
+// ══════════════════════════════════════════
+
+// Aplicar tema inmediatamente para evitar flash
+iniciarTema();
+
+if (negocioId) {
+  // Ya activado — ocultar pantalla y arrancar directo
+  document.getElementById('activation-screen').style.display = 'none';
+  arrancarApp();
+}
+// Si no tiene código, la pantalla de activación ya está visible
+
 </script>
 </body>
 </html>
