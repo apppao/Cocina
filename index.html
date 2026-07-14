@@ -677,12 +677,15 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
       </div>
     </div>
     <div class="field">
-      <label>Stock inicial (en tu unidad)</label>
-      <input type="number" id="ing-stock-ini" placeholder="0" step="0.01">
+      <label>Stock que ya tenías antes (opcional)</label>
+      <input type="number" id="ing-stock-ini" placeholder="0 si no tenías nada" step="0.01">
     </div>
     <div class="field">
       <label>Stock mínimo (alerta)</label>
       <input type="number" id="ing-stock-min" placeholder="Ej: 1" step="0.01">
+    </div>
+    <div style="font-size:0.75rem;color:var(--text-mute);margin-bottom:12px;line-height:1.6;">
+      El stock inicial será: lo que ya tenías + la cantidad que compraste ahora.
     </div>
     <button class="btn btn-gold btn-full" onclick="guardarIngrediente()">Guardar ingrediente</button>
   </div>
@@ -1037,6 +1040,10 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
     <span class="icon">📊</span>
     <span class="label">Inicio</span>
   </button>
+  <button class="bnav-btn" onclick="goPage('ventas',this)">
+    <span class="icon">💰</span>
+    <span class="label">Ventas</span>
+  </button>
   <button class="bnav-btn" onclick="goPage('ingredientes',this)">
     <span class="icon">📦</span>
     <span class="label">Insumos</span>
@@ -1048,10 +1055,6 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
   <button class="bnav-btn" onclick="goPage('menu',this)">
     <span class="icon">🍽</span>
     <span class="label">Menú</span>
-  </button>
-  <button class="bnav-btn" onclick="goPage('ventas',this)">
-    <span class="icon">💰</span>
-    <span class="label">Ventas</span>
   </button>
   <button class="bnav-btn" onclick="goPage('creditos',this)">
     <span class="icon">📒</span>
@@ -1369,6 +1372,9 @@ function initListeners() {
     state.ventas = snap.val() || {};
     renderDashboard();
     renderCreditos();
+    renderMenuActivo();
+    renderDashMenuResumen();
+    renderVentaItems();
   });
 }
 
@@ -1560,7 +1566,7 @@ function guardarIngrediente() {
   const nombre = document.getElementById('ing-nombre').value.trim();
   const cat = document.getElementById('ing-cat').value;
   const unidad = document.getElementById('ing-unidad').value;
-  const cantCompra = parseFloat(document.getElementById('ing-cant-compra').value) || 1;
+  const cantCompra = parseFloat(document.getElementById('ing-cant-compra').value) || 0;
   const precio = parseFloat(document.getElementById('ing-precio').value) || 0;
   const stockIni = parseFloat(document.getElementById('ing-stock-ini').value) || 0;
   const stockMin = parseFloat(document.getElementById('ing-stock-min').value) || 0;
@@ -1568,14 +1574,29 @@ function guardarIngrediente() {
 
   if (!nombre) { notif('notif-ing','Ingresa el nombre del ingrediente','red'); return; }
 
-  const precioPorUnidad = precio / cantCompra;
+  // Stock total = lo que ya tenías + lo que compraste ahora
+  const stockTotal = stockIni + cantCompra;
+  const precioPorUnidad = cantCompra > 0 ? precio / cantCompra : 0;
   const id = uid();
-  const data = { nombre, tipo, cat, unidad, cantCompra, precio, precioPorUnidad, stock: stockIni, stockMin };
+  const data = { nombre, tipo, cat, unidad, cantCompra, precio, precioPorUnidad, stock: stockTotal, stockMin };
 
   dot.className = 'sync-dot syncing';
   r('ingredientes/' + id).set(data)
     .then(() => {
-      notif('notif-ing', `✅ ${nombre} guardado`, 'green');
+      // Registrar movimiento de compra inicial si hay cantidad
+      if (cantCompra > 0) {
+        registrarMovimiento({
+          tipo: 'compra',
+          ingredienteId: id,
+          ingredienteNombre: nombre,
+          cantidad: cantCompra,
+          unidad,
+          stockAntes: stockIni,
+          stockDespues: stockTotal,
+          nota: `Compra inicial: ${cantCompra} ${unidad} a ${moneda(precio)}`
+        });
+      }
+      notif('notif-ing', `✅ ${nombre} guardado — Stock: ${stockTotal} ${unidad}`, 'green');
       ['ing-nombre','ing-cant-compra','ing-precio','ing-stock-ini','ing-stock-min'].forEach(f => document.getElementById(f).value = '');
     })
     .catch(e => notif('notif-ing', 'Error: ' + e.message, 'red'));
@@ -1828,7 +1849,9 @@ let recGastoCounter = 0;
 
 function addRecIng() {
   const id = 'ri-' + recIngCounter++;
-  const ings = Object.entries(state.ingredientes).sort((a,b) => a[1].nombre.localeCompare(b[1].nombre));
+  const ings = Object.entries(state.ingredientes)
+    .filter(([, i]) => (i.tipo || 'comida') === 'comida')
+    .sort((a,b) => a[1].nombre.localeCompare(b[1].nombre));
   const div = document.createElement('div');
   div.className = 'rec-ing-line';
   div.id = id;
@@ -2791,23 +2814,25 @@ function eliminarVenta(id) {
 // CRÉDITOS
 // ══════════════════════════════════════════
 function renderCreditos() {
-  const ventas = Object.entries(state.ventas);
-  // Agrupar créditos pendientes por cliente
+  const ventas = Object.values(state.ventas);
+
+  // Sumar créditos por cliente
   const clientes = {};
-  ventas.forEach(([id, v]) => {
-    if (!v.credito || v.credito <= 0) return;
+  ventas.forEach(v => {
     const nombre = v.cliente || 'Sin nombre';
-    if (!clientes[nombre]) clientes[nombre] = { deuda: 0, ventaIds: [], ultimo: '' };
-    const pagado = v.creditoPagado || 0;
-    const pendiente = v.credito - pagado;
-    if (pendiente > 0) {
-      clientes[nombre].deuda += pendiente;
-      clientes[nombre].ventaIds.push(id);
+    if (!clientes[nombre]) clientes[nombre] = { deuda: 0, ultimo: '' };
+
+    if (v.tipo === 'abono') {
+      // Los abonos restan la deuda
+      clientes[nombre].deuda -= Math.abs(v.credito || 0);
+    } else if (v.credito > 0) {
+      // Las ventas a crédito suman la deuda
+      clientes[nombre].deuda += v.credito;
       if (v.fecha > clientes[nombre].ultimo) clientes[nombre].ultimo = v.fecha;
     }
   });
 
-  const entradas = Object.entries(clientes).filter(([,d]) => d.deuda > 0);
+  const entradas = Object.entries(clientes).filter(([,d]) => d.deuda > 0.01);
   const totalPendiente = entradas.reduce((s,[,d]) => s + d.deuda, 0);
   const credTotalEl = document.getElementById('cred-total-pendiente');
   const credCountEl = document.getElementById('cred-count');
@@ -2841,37 +2866,62 @@ function abrirPagoCredito(nombre, deudaTotal) {
   cont.innerHTML = `
     <div class="card" style="margin-bottom:14px;">
       <div class="card-title">👤 ${nombre}</div>
-      <div class="card-sub">Deuda total: ${moneda(deudaTotal)}</div>
+      <div class="card-sub">Deuda pendiente: <strong style="color:var(--red)">${moneda(deudaTotal)}</strong></div>
     </div>
     <div class="field">
       <label>Monto que abona (RD$)</label>
       <input type="number" id="pc-monto" placeholder="${deudaTotal}" step="0.01">
     </div>
-    <div style="display:flex;gap:8px;">
+    <div class="field">
+      <label>Método de pago</label>
+      <div class="pago-metodos" style="grid-template-columns:1fr 1fr;">
+        <button type="button" class="pago-btn active" data-metodo="efectivo" onclick="selMetodoPagoCredito('efectivo')">
+          <span class="pago-icon">💵</span><span>Efectivo</span>
+        </button>
+        <button type="button" class="pago-btn" data-metodo="transferencia" onclick="selMetodoPagoCredito('transferencia')">
+          <span class="pago-icon">📲</span><span>Transferencia</span>
+        </button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px;">
       <button class="btn btn-green btn-full" onclick="confirmarPagoCredito('${nombre}',${deudaTotal})">Confirmar pago</button>
       <button class="btn btn-ghost" onclick="confirmarPagoCredito('${nombre}',${deudaTotal},true)">Saldar todo</button>
     </div>
   `;
+  window._metodoPagoCredito = 'efectivo';
   openModal('modal-pago-credito');
+}
+
+function selMetodoPagoCredito(metodo) {
+  window._metodoPagoCredito = metodo;
+  document.querySelectorAll('#pc-contenido .pago-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.metodo === metodo)
+  );
 }
 
 function confirmarPagoCredito(nombre, deudaTotal, saldarTodo = false) {
   const monto = saldarTodo ? deudaTotal : (parseFloat(document.getElementById('pc-monto').value) || 0);
   if (!monto) { notif('notif-cred','Ingresa un monto','red'); return; }
+  const metodo = window._metodoPagoCredito || 'efectivo';
 
-  // Registrar pago como venta especial de tipo "abono"
   const abono = {
     fecha: hoy(), timestamp: Date.now(),
-    total: -monto, efectivo: monto, transfer: 0, credito: -monto,
-    cliente: nombre, tipo: 'abono',
+    total: 0,
+    efectivo: metodo === 'efectivo' ? monto : 0,
+    transfer: metodo === 'transferencia' ? monto : 0,
+    credito: -monto,  // negativo = resta la deuda
+    cliente: nombre,
+    tipo: 'abono',
+    metodoPago: metodo,
     items: []
   };
+
   r('ventas/' + uid()).set(abono).then(() => {
     closeModal('modal-pago-credito');
-    notif('notif-cred', `✅ Pago de ${moneda(monto)} registrado para ${nombre}`, 'green');
+    notif('notif-cred', `✅ Pago de ${moneda(monto)} (${metodo}) registrado para ${nombre}`, 'green');
     renderCreditos();
     renderDashboard();
-  });
+  }).catch(e => notif('notif-cred','Error: '+e.message,'red'));
 }
 
 // ══════════════════════════════════════════
