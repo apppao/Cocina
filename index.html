@@ -1025,16 +1025,6 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
     </div>
   </div>
 
-  <div class="section-label">Herramientas</div>
-  <div class="card" style="margin-bottom:16px;">
-    <div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:12px;line-height:1.6;">
-      ⚠️ Zona de peligro. Estas acciones no se pueden deshacer.
-    </div>
-    <button class="btn btn-red btn-full" style="margin-bottom:8px;" onclick="resetearDatos('ventas')">🗑 Limpiar todas las ventas</button>
-    <button class="btn btn-red btn-full" style="margin-bottom:8px;" onclick="resetearDatos('ingredientes')">🗑 Limpiar ingredientes y stock</button>
-    <button class="btn btn-red btn-full" onclick="resetearDatos('todo')">🗑 Resetear todo el negocio</button>
-  </div>
-
   <div class="section-label">Negocio activo</div>
   <div class="card">
     <div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:8px;">
@@ -1378,17 +1368,8 @@ function initListeners() {
     renderDashMenuResumen();
     renderVentaItems();
   });
-  // Listener de ventas - solo carga el mes actual para eficiencia
-  const mesActual = hoy().substring(0, 7).replace('-', '/');
-  r('ventas/' + mesActual).on('value', snap => {
-    const ventasMes = snap.val() || {};
-    // Aplanar la estructura fecha/id -> venta
-    state.ventas = {};
-    Object.entries(ventasMes).forEach(([dia, ventas]) => {
-      Object.entries(ventas).forEach(([id, venta]) => {
-        state.ventas[id] = venta;
-      });
-    });
+  r('ventas').on('value', snap => {
+    state.ventas = snap.val() || {};
     renderDashboard();
     renderCreditos();
     renderMenuActivo();
@@ -1729,33 +1710,34 @@ function confirmarCompra(id) {
   const precio = parseFloat(document.getElementById('comp-precio').value) || 0;
   if (!cant || !precio) return;
 
+  // Convertir a unidad base del ingrediente si es diferente
   const cantEnUnidadIng = cant * (CONVERSION[unidad] / CONVERSION[ing.unidad]);
+  const nuevoStock = (ing.stock || 0) + cantEnUnidadIng;
   const nuevoPrecioPorUnidad = precio / cant;
 
-  // Usar transacción para evitar inconsistencias con dos dispositivos simultáneos
-  r('ingredientes/' + id + '/stock').transaction(stockActual => {
-    return (stockActual || 0) + cantEnUnidadIng;
-  }).then(result => {
-    const nuevoStock = result.snapshot.val();
+  const updates = {};
+  updates['ingredientes/' + id + '/stock'] = nuevoStock;
+  updates['ingredientes/' + id + '/precioPorUnidad'] = nuevoPrecioPorUnidad;
+  updates['ingredientes/' + id + '/precio'] = precio;
 
-    // Actualizar precio y registrar gasto
-    const updates = {};
-    updates['ingredientes/' + id + '/precioPorUnidad'] = nuevoPrecioPorUnidad;
-    updates['ingredientes/' + id + '/precio'] = precio;
-    const gastoId = uid();
-    updates['gastosDia/' + gastoId] = {
-      fecha: hoy(), tipo: 'compra', ingredienteId: id,
-      nombre: ing.nombre, cantidad: cant, unidad, monto: precio
-    };
-    return rUpdate(updates).then(() => {
+  // Registrar gasto
+  const gastoId = uid();
+  updates['gastosDia/' + gastoId] = {
+    fecha: hoy(), tipo: 'compra', ingredienteId: id,
+    nombre: ing.nombre, cantidad: cant, unidad, monto: precio
+  };
+
+  rUpdate(updates)
+    .then(() => {
       closeModal('modal-compra');
+      // Registrar movimiento
       registrarMovimiento({
         tipo: 'compra',
         ingredienteId: id,
         ingredienteNombre: ing.nombre,
         cantidad: cantEnUnidadIng,
         unidad: ing.unidad,
-        stockAntes: (nuevoStock - cantEnUnidadIng),
+        stockAntes: ing.stock || 0,
         stockDespues: nuevoStock,
         nota: `Compra: ${cant} ${unidad} a ${moneda(precio)}`
       });
@@ -1763,7 +1745,6 @@ function confirmarCompra(id) {
       state.gastosDia[gastoId] = { fecha: hoy(), monto: precio };
       renderDashboard();
     });
-  }).catch(e => notif('notif-ing', 'Error: ' + e.message, 'red'));
 }
 
 // ══════════════════════════════════════════
@@ -1874,37 +1855,16 @@ function addRecIng() {
   const div = document.createElement('div');
   div.className = 'rec-ing-line';
   div.id = id;
-  div.style.flexDirection = 'column';
-  div.style.alignItems = 'stretch';
-  div.style.gap = '6px';
   div.innerHTML = `
-    <div style="display:flex;gap:6px;align-items:center;">
-      <input type="search" placeholder="🔍 Buscar ingrediente..." oninput="filtrarSelectIng(this,'${id}-sel')"
-        style="flex:2;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:8px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
-      <input type="number" placeholder="Cant." step="0.01" min="0" oninput="calcReceta()"
-        style="flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:8px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
-      <button onclick="document.getElementById('${id}').remove();calcReceta();" class="btn btn-red btn-sm">✕</button>
-    </div>
-    <select id="${id}-sel" onchange="calcReceta()"
-      style="width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:8px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;"
-      data-ings='${JSON.stringify(ings.map(([iid,i])=>({id:iid,nombre:i.nombre,unidad:i.unidad})))}'>
-      <option value="">-- Selecciona un ingrediente --</option>
+    <select onchange="calcReceta()" style="flex:2;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
+      <option value="">-- Ingrediente --</option>
       ${ings.map(([iid,i]) => `<option value="${iid}">${i.nombre} (${i.unidad})</option>`).join('')}
     </select>
+    <input type="number" placeholder="Cant." step="0.01" min="0" oninput="calcReceta()"
+      style="flex:1;background:var(--surface2);border:1px solid var(--border2);color:var(--text);padding:9px 10px;border-radius:var(--radius);font-family:var(--body);font-size:0.82rem;outline:none;">
+    <button onclick="document.getElementById('${id}').remove();calcReceta();" class="btn btn-red btn-sm">✕</button>
   `;
   document.getElementById('rec-ings-lista').appendChild(div);
-}
-
-function filtrarSelectIng(input, selId) {
-  const busq = input.value.toLowerCase();
-  const sel = document.getElementById(selId);
-  if (!sel) return;
-  const ings = JSON.parse(sel.dataset.ings || '[]');
-  const valorActual = sel.value;
-  sel.innerHTML = '<option value="">-- Selecciona un ingrediente --</option>' +
-    ings.filter(i => i.nombre.toLowerCase().includes(busq))
-      .map(i => `<option value="${i.id}" ${i.id === valorActual ? 'selected' : ''}>${i.nombre} (${i.unidad})</option>`)
-      .join('');
 }
 
 function addRecEmpaque() {
@@ -1934,7 +1894,7 @@ function calcReceta() {
 
   // Sumar ingredientes de comida
   document.querySelectorAll('#rec-ings-lista .rec-ing-line').forEach(row => {
-    const sel = row.querySelector('select[id$="-sel"]') || row.querySelector('select');
+    const sel = row.querySelector('select');
     const inp = row.querySelector('input[type=number]');
     if (!sel || !inp) return;
     const ingId = sel.value;
@@ -2001,7 +1961,7 @@ function guardarReceta() {
 
   const ingredientes = [];
   document.querySelectorAll('#rec-ings-lista .rec-ing-line').forEach(row => {
-    const sel = row.querySelector('select[id$="-sel"]') || row.querySelector('select');
+    const sel = row.querySelector('select');
     const inp = row.querySelector('input[type=number]');
     if (!sel || !inp) return;
     const ingId = sel.value;
@@ -2491,24 +2451,18 @@ function publicarMenu() {
     });
   });
 
-  // Aplicar descuento de stock con transacciones
-  const transacciones = Object.entries(stockUpdates).map(([ingId, nuevoStock]) => {
-    const cantDescontada = (state.ingredientes[ingId]?.stock || 0) - nuevoStock;
-    return r('ingredientes/' + ingId + '/stock').transaction(stockActual => {
-      return Math.max(0, (stockActual || 0) - cantDescontada);
-    });
+  // Aplicar descuento de stock
+  Object.entries(stockUpdates).forEach(([ingId, nuevoStock]) => {
+    updates['ingredientes/' + ingId + '/stock'] = nuevoStock;
   });
 
-  // Guardar menú del día
   rUpdate(updates)
-    .then(() => Promise.all(transacciones))
     .then(() => {
       notif('notif-menu', '✅ Menú publicado — stock descontado', 'green');
       // Registrar movimientos de producción
-      Object.entries(stockUpdates).forEach(([ingId, _]) => {
+      Object.entries(stockUpdates).forEach(([ingId, nuevoStock]) => {
         const ingData = state.ingredientes[ingId];
         if (!ingData) return;
-        const cantDescontada = (ingData.stock || 0) - Math.max(0, (ingData.stock || 0) - ((ingData.stock || 0) - _));
         const menuItem = items.find(([, it]) => {
           const rec = state.recetas[it.recetaId];
           return rec && rec.ingredientes.some(i => i.ingId === ingId);
@@ -2518,10 +2472,10 @@ function publicarMenu() {
           tipo: 'produccion',
           ingredienteId: ingId,
           ingredienteNombre: ingData.nombre,
-          cantidad: -Math.abs((ingData.stock || 0) - _),
+          cantidad: -(Math.min(ingData.stock || 0, (ingData.stock || 0) - nuevoStock)),
           unidad: ingData.unidad,
           stockAntes: ingData.stock || 0,
-          stockDespues: _,
+          stockDespues: nuevoStock,
           nota: `Producción: ${recNombre}`
         });
       });
@@ -2717,193 +2671,107 @@ function registrarVenta() {
     items: itemsVenta, porciones
   };
 
-  // Verificar stock de empaques antes de registrar
-  const empaquesFaltantes = [];
+  const updates = {};
+  updates['ventas/' + uid()] = venta;
+
+  // Descontar stock de empaques en el momento de la venta
   Object.entries(empaqueDescuentos).forEach(([ingId, cant]) => {
     const ingData = state.ingredientes[ingId];
-    if (!ingData || ingData.stock < cant) {
-      empaquesFaltantes.push(`${ingData?.nombre || ingId} (necesitas ${cant.toFixed(2)}, tienes ${(ingData?.stock||0).toFixed(2)})`);
-    }
+    if (!ingData) return;
+    const nuevoStock = Math.max(0, (ingData.stock || 0) - cant);
+    updates['ingredientes/' + ingId + '/stock'] = nuevoStock;
   });
 
-  const continuar = () => {
-    const updates = {};
-    const fechaPath = hoy().replace(/-/g, '/');
-    updates['ventas/' + fechaPath + '/' + uid()] = venta;
-
-    // Usar transacciones para descontar empaques
-    const transacciones = Object.entries(empaqueDescuentos).map(([ingId, cant]) => {
-      return r('ingredientes/' + ingId + '/stock').transaction(stockActual => {
-        return Math.max(0, (stockActual || 0) - cant);
-      });
-    });
-
-    rUpdate(updates)
-      .then(() => Promise.all(transacciones))
-      .then(() => {
-        notif('notif-ven', `✅ Venta de ${moneda(total)} registrada`, 'green');
-        Object.entries(empaqueDescuentos).forEach(([ingId, cant]) => {
-          const ingData = state.ingredientes[ingId];
-          if (!ingData) return;
-          registrarMovimiento({
-            tipo: 'venta',
-            ingredienteId: ingId,
-            ingredienteNombre: ingData.nombre,
-            cantidad: -cant,
-            unidad: ingData.unidad,
-            stockAntes: ingData.stock || 0,
-            stockDespues: Math.max(0, (ingData.stock || 0) - cant),
-            nota: `Venta: ${itemsVenta.map(i => i.nombre).join(', ')}`
-          });
+  rUpdate(updates)
+    .then(() => {
+      notif('notif-ven', `✅ Venta de ${moneda(total)} registrada`, 'green');
+      // Registrar movimientos de venta (empaques)
+      Object.entries(empaqueDescuentos).forEach(([ingId, cant]) => {
+        const ingData = state.ingredientes[ingId];
+        if (!ingData) return;
+        const nuevoStock = Math.max(0, (ingData.stock || 0) - cant);
+        registrarMovimiento({
+          tipo: 'venta',
+          ingredienteId: ingId,
+          ingredienteNombre: ingData.nombre,
+          cantidad: -cant,
+          unidad: ingData.unidad,
+          stockAntes: ingData.stock || 0,
+          stockDespues: nuevoStock,
+          nota: `Venta: ${itemsVenta.map(i => i.nombre).join(', ')}`
         });
-        // Limpiar
-        cantVenta = {};
-        pagoDivididoActivo = false;
-        metodoPagoActual = 'efectivo';
-        document.getElementById('pago-dividido-wrap').style.display = 'none';
-        document.getElementById('pago-metodos').style.opacity = '1';
-        document.getElementById('pago-metodos').style.pointerEvents = 'auto';
-        document.getElementById('btn-dividir-pago').textContent = '¿Pago dividido entre métodos? Toca aquí';
-        document.querySelectorAll('#pago-metodos .pago-btn').forEach(b => b.classList.toggle('active', b.dataset.metodo === 'efectivo'));
-        ['v-efectivo','v-transfer','v-credito','v-cliente'].forEach(id => document.getElementById(id).value = '');
-        renderVentaItems();
-        calcVentaTotal();
-      })
-      .catch(e => notif('notif-ven','Error: '+e.message,'red'));
-  };
-
-  if (empaquesFaltantes.length) {
-    // Mostrar modal de advertencia en vez de confirm() bloqueante
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay open';
-    overlay.innerHTML = `
-      <div class="modal-box">
-        <div class="modal-title">⚠️ Stock de empaques insuficiente</div>
-        <div style="font-size:0.85rem;color:var(--text-dim);margin-bottom:14px;line-height:1.6;">
-          El inventario registrado no tiene suficiente stock:<br><br>
-          <strong>${empaquesFaltantes.join('<br>')}</strong>
-        </div>
-        <div style="display:flex;gap:10px;flex-direction:column;">
-          <button class="btn btn-gold btn-full" id="btn-continuar-igual">Continuar con la venta</button>
-          <button class="btn btn-ghost btn-full" id="btn-ir-insumos">Ir a agregar stock</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(overlay);
-    document.getElementById('btn-continuar-igual').onclick = () => {
-      document.body.removeChild(overlay);
-      continuar();
-    };
-    document.getElementById('btn-ir-insumos').onclick = () => {
-      document.body.removeChild(overlay);
-      document.querySelector('[onclick*="ingredientes"]').click();
-    };
-  } else {
-    continuar();
-  }
+      });
+      // Limpiar
+      cantVenta = {};
+      pagoDivididoActivo = false;
+      metodoPagoActual = 'efectivo';
+      document.getElementById('pago-dividido-wrap').style.display = 'none';
+      document.getElementById('pago-metodos').style.opacity = '1';
+      document.getElementById('pago-metodos').style.pointerEvents = 'auto';
+      document.getElementById('btn-dividir-pago').textContent = '¿Pago dividido entre métodos? Toca aquí';
+      document.querySelectorAll('#pago-metodos .pago-btn').forEach(b => b.classList.toggle('active', b.dataset.metodo === 'efectivo'));
+      ['v-efectivo','v-transfer','v-credito','v-cliente'].forEach(id => document.getElementById(id).value = '');
+      renderVentaItems();
+      calcVentaTotal();
+    })
+    .catch(e => notif('notif-ven','Error: '+e.message,'red'));
+}
 
 // ══════════════════════════════════════════
 // HISTORIAL
 // ══════════════════════════════════════════
 function cargarHistorial() {
-  const desde = document.getElementById('hist-desde').value || hoy().substring(0,7) + '-01';
+  const desde = document.getElementById('hist-desde').value || '2020-01-01';
   const hasta = document.getElementById('hist-hasta').value || hoy();
+  const ventas = Object.entries(state.ventas)
+    .filter(([,v]) => v.fecha >= desde && v.fecha <= hasta)
+    .sort((a,b) => b[1].timestamp - a[1].timestamp);
 
-  // Determinar meses a consultar
-  const meses = [];
-  let cursor = new Date(desde + 'T00:00:00');
-  const fin = new Date(hasta + 'T00:00:00');
-  while (cursor <= fin) {
-    const mes = cursor.toISOString().substring(0,7).replace('-','/');
-    if (!meses.includes(mes)) meses.push(mes);
-    cursor.setMonth(cursor.getMonth() + 1);
-  }
+  let totales = { total:0, efectivo:0, transfer:0, credito:0 };
+  ventas.forEach(([,v]) => {
+    totales.total += v.total||0;
+    totales.efectivo += v.efectivo||0;
+    totales.transfer += v.transfer||0;
+    totales.credito += v.credito||0;
+  });
+
+  const statsDiv = document.getElementById('hist-stats');
+  statsDiv.style.display = 'block';
+  statsDiv.innerHTML = `
+    <div class="calc-row"><span class="calc-label">Total período</span><span class="calc-val green">${moneda(totales.total)}</span></div>
+    <div class="calc-row"><span class="calc-label">Efectivo</span><span class="calc-val">${moneda(totales.efectivo)}</span></div>
+    <div class="calc-row"><span class="calc-label">Transferencia</span><span class="calc-val">${moneda(totales.transfer)}</span></div>
+    <div class="calc-row"><span class="calc-label">Crédito pendiente</span><span class="calc-val red">${moneda(totales.credito)}</span></div>
+  `;
 
   const lista = document.getElementById('hist-lista');
-  const statsDiv = document.getElementById('hist-stats');
-  lista.innerHTML = '<div class="empty"><span class="e-icon">⏳</span><p>Cargando...</p></div>';
-
-  Promise.all(meses.map(mes => r('ventas/' + mes).once('value')))
-    .then(snaps => {
-      const todasVentas = [];
-      snaps.forEach(snap => {
-        const mes = snap.val() || {};
-        Object.entries(mes).forEach(([dia, ventasDia]) => {
-          Object.entries(ventasDia).forEach(([id, v]) => {
-            if (v.fecha >= desde && v.fecha <= hasta) {
-              todasVentas.push([id, v, dia]);
-            }
-          });
-        });
-      });
-
-      todasVentas.sort((a,b) => (b[1].timestamp||0) - (a[1].timestamp||0));
-
-      let totales = { total:0, efectivo:0, transfer:0, credito:0 };
-      todasVentas.forEach(([,v]) => {
-        if (v.tipo === 'abono') return;
-        totales.total += v.total||0;
-        totales.efectivo += v.efectivo||0;
-        totales.transfer += v.transfer||0;
-        totales.credito += v.credito||0;
-      });
-
-      statsDiv.style.display = 'block';
-      statsDiv.innerHTML = `
-        <div class="calc-row"><span class="calc-label">Total período</span><span class="calc-val green">${moneda(totales.total)}</span></div>
-        <div class="calc-row"><span class="calc-label">Efectivo</span><span class="calc-val">${moneda(totales.efectivo)}</span></div>
-        <div class="calc-row"><span class="calc-label">Transferencia</span><span class="calc-val">${moneda(totales.transfer)}</span></div>
-        <div class="calc-row"><span class="calc-label">Crédito</span><span class="calc-val red">${moneda(totales.credito)}</span></div>
-      `;
-
-      if (!todasVentas.length) {
-        lista.innerHTML = '<div class="empty"><span class="e-icon">📋</span><p>No hay ventas en ese período.</p></div>';
-        return;
-      }
-
-      lista.innerHTML = todasVentas.map(([id, v, dia]) => {
-        if (v.tipo === 'abono') {
-          return `
-            <div class="card" style="margin-bottom:8px;border-color:var(--green);">
-              <div class="card-row">
-                <div>
-                  <div class="card-title">💰 Abono — ${v.cliente || '—'}</div>
-                  <div class="card-sub">${fmtFecha(v.fecha)} · ${v.metodoPago || 'efectivo'}</div>
-                </div>
-                <span class="badge badge-green">${moneda(Math.abs(v.credito||0))}</span>
-              </div>
-              <div style="display:flex;gap:8px;margin-top:8px;">
-                <button class="btn btn-red btn-sm" onclick="eliminarVenta('${id}','${dia}')">🗑 Eliminar</button>
-              </div>
-            </div>
-          `;
-        }
-        return `
-          <div class="card" style="margin-bottom:8px;">
-            <div class="card-row">
-              <div>
-                <div class="card-title">${moneda(v.total)}</div>
-                <div class="card-sub">${fmtFecha(v.fecha)} · ${v.items ? v.items.map(i=>i.nombre).join(', ') : '—'}</div>
-              </div>
-              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
-                ${v.efectivo ? `<span class="badge badge-green">Ef. ${moneda(v.efectivo)}</span>` : ''}
-                ${v.transfer ? `<span class="badge badge-blue">Tr. ${moneda(v.transfer)}</span>` : ''}
-                ${v.credito ? `<span class="badge badge-red">Crd. ${moneda(v.credito)}</span>` : ''}
-              </div>
-            </div>
-            ${v.cliente ? `<div style="font-size:0.75rem;color:var(--text-mute);margin-top:4px;">👤 ${v.cliente}</div>` : ''}
-            <div style="display:flex;gap:8px;margin-top:8px;">
-              <button class="btn btn-ghost btn-sm" onclick="verDetalleVenta('${id}','${dia}')">Ver detalle</button>
-              <button class="btn btn-red btn-sm" onclick="eliminarVenta('${id}','${dia}')">🗑 Eliminar</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    });
+  if (!ventas.length) {
+    lista.innerHTML = '<div class="empty"><span class="e-icon">📋</span><p>No hay ventas en ese período.</p></div>';
+    return;
+  }
+  lista.innerHTML = ventas.map(([id, v]) => `
+    <div class="card" style="margin-bottom:8px;">
+      <div class="card-row">
+        <div>
+          <div class="card-title">${moneda(v.total)}</div>
+          <div class="card-sub">${fmtFecha(v.fecha)} · ${v.items ? v.items.map(i=>i.nombre).join(', ') : '—'}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+          ${v.efectivo ? `<span class="badge badge-green">Ef. ${moneda(v.efectivo)}</span>` : ''}
+          ${v.transfer ? `<span class="badge badge-blue">Tr. ${moneda(v.transfer)}</span>` : ''}
+          ${v.credito ? `<span class="badge badge-red">Crd. ${moneda(v.credito)}</span>` : ''}
+        </div>
+      </div>
+      ${v.cliente ? `<div style="font-size:0.75rem;color:var(--text-mute);margin-top:4px;">👤 ${v.cliente}</div>` : ''}
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-ghost btn-sm" onclick="verDetalleVenta('${id}')">Ver detalle</button>
+        <button class="btn btn-red btn-sm" onclick="eliminarVenta('${id}')">🗑 Eliminar</button>
+      </div>
+    </div>
+  `).join('');
 }
 
-function verDetalleVenta(id, dia) {
-  // Buscar la venta en state.ventas o cargarla
+function verDetalleVenta(id) {
   const v = state.ventas[id];
   if (!v) return;
   const cont = document.getElementById('vd-contenido');
@@ -2927,26 +2795,18 @@ function verDetalleVenta(id, dia) {
       `).join('')}
     ` : ''}
     <div style="display:flex;gap:8px;margin-top:14px;">
-      <button class="btn btn-red btn-full" onclick="eliminarVenta('${id}','${dia}');closeModal('modal-venta-detalle');">🗑 Eliminar venta</button>
+      <button class="btn btn-red btn-full" onclick="eliminarVenta('${id}');closeModal('modal-venta-detalle');">🗑 Eliminar venta</button>
     </div>
   `;
   openModal('modal-venta-detalle');
 }
 
-function eliminarVenta(id, dia) {
+function eliminarVenta(id) {
   if (!confirm('¿Eliminar esta venta? Esta acción no se puede deshacer.')) return;
-  const mesPath = dia ? dia.substring(0,7) : hoy().replace(/-/g,'/').substring(0,7);
-  const diaPath = dia || hoy().replace(/-/g,'/');
-  r('ventas/' + diaPath + '/' + id).remove().then(() => {
+  r('ventas/' + id).remove().then(() => {
     notif('notif-ven','✅ Venta eliminada','green');
     cargarHistorial();
     renderDashboard();
-  }).catch(e => {
-    // Intentar con path sin día (compatibilidad con datos anteriores)
-    r('ventas/' + id).remove().then(() => {
-      notif('notif-ven','✅ Venta eliminada','green');
-      cargarHistorial();
-    });
   });
 }
 
@@ -3056,8 +2916,7 @@ function confirmarPagoCredito(nombre, deudaTotal, saldarTodo = false) {
     items: []
   };
 
-  const fechaPath = hoy().replace(/-/g, '/');
-  r('ventas/' + fechaPath + '/' + uid()).set(abono).then(() => {
+  r('ventas/' + uid()).set(abono).then(() => {
     closeModal('modal-pago-credito');
     notif('notif-cred', `✅ Pago de ${moneda(monto)} (${metodo}) registrado para ${nombre}`, 'green');
     renderCreditos();
@@ -3167,25 +3026,6 @@ function importarRespaldo(input) {
 }
 
 // ══════════════════════════════════════════
-function resetearDatos(que) {
-  const mensajes = {
-    ventas: '¿Eliminar TODAS las ventas? Esta acción no se puede deshacer.',
-    ingredientes: '¿Eliminar TODOS los ingredientes y su stock? Esta acción no se puede deshacer.',
-    todo: '⚠️ ¿Resetear COMPLETAMENTE el negocio? Se borrarán ingredientes, recetas, ventas, menús y movimientos. Esta acción NO se puede deshacer.'
-  };
-  if (!confirm(mensajes[que])) return;
-
-  const paths = {
-    ventas: ['ventas'],
-    ingredientes: ['ingredientes', 'gastosDia', 'movimientos'],
-    todo: ['ingredientes', 'recetas', 'ventas', 'menuDia', 'gastosDia', 'movimientos', 'ajustes']
-  };
-
-  Promise.all(paths[que].map(p => r(p).remove()))
-    .then(() => notif('notif-ajustes', '✅ Datos eliminados correctamente', 'green'))
-    .catch(e => notif('notif-ajustes', 'Error: ' + e.message, 'red'));
-}
-
 function cerrarSesionNegocio() {
   if (!confirm('¿Cambiar de negocio? Se te pedirá un nuevo código de activación.')) return;
   localStorage.removeItem('negocio_id');
