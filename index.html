@@ -1197,7 +1197,10 @@ async function activarCodigo() {
   const errorEl = document.getElementById('activation-error');
   const btn = document.getElementById('activation-btn');
 
-  if (!/^COC-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(codigo)) {
+  errorEl.textContent = '';
+  document.getElementById('activation-code').classList.remove('error');
+
+  if (!/^COC-[A-Z0-9]{3,4}-[A-Z0-9]{3,4}$/.test(codigo)) {
     errorEl.textContent = 'El formato debe ser COC-XXXX-XXXX';
     document.getElementById('activation-code').classList.add('error');
     return;
@@ -1205,13 +1208,21 @@ async function activarCodigo() {
 
   btn.textContent = 'Verificando...';
   btn.disabled = true;
+  errorEl.textContent = '';
+
+  // Timeout de 10 segundos
+  const timeout = setTimeout(() => {
+    errorEl.textContent = 'La verificación tardó demasiado. Verifica tu conexión.';
+    btn.textContent = 'Activar';
+    btn.disabled = false;
+  }, 10000);
 
   try {
-    // Validar contra Realtime Database de Loraine Cocina
     const snap = await db.ref('codigos_activacion/' + codigo).once('value');
+    clearTimeout(timeout);
 
     if (!snap.exists()) {
-      errorEl.textContent = 'Código no encontrado. Verifica e intenta de nuevo.';
+      errorEl.textContent = 'Código no encontrado. Verifica que lo copiaste completo.';
       document.getElementById('activation-code').classList.add('error');
       btn.textContent = 'Activar'; btn.disabled = false;
       return;
@@ -1233,9 +1244,11 @@ async function activarCodigo() {
     arrancarApp();
 
   } catch(e) {
-    errorEl.textContent = 'Error de conexión. Verifica tu internet e intenta de nuevo.';
-    btn.textContent = 'Activar'; btn.disabled = false;
-    console.error(e);
+    clearTimeout(timeout);
+    console.error('Error activando código:', e);
+    errorEl.textContent = 'Error: ' + e.message;
+    btn.textContent = 'Activar';
+    btn.disabled = false;
   }
 }
 
