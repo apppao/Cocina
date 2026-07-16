@@ -1313,16 +1313,15 @@ function porcionesVendidasHoy() {
   return vendidas;
 }
 
-// ══════════════════════════════════════════
-// SYNC INDICATOR
-// ══════════════════════════════════════════
-const dot = document.getElementById('sync-dot');
-db.ref('.info/connected').on('value', snap => {
-  dot.className = 'sync-dot' + (snap.val() ? '' : ' offline');
-  dot.title = snap.val() ? 'Sincronizado' : 'Sin conexión — guardando local';
-});
-
 function arrancarApp() {
+  // Sync indicator — solo después de activación
+  const dot = document.getElementById('sync-dot');
+  db.ref('.info/connected').on('value', snap => {
+    if (!dot) return;
+    dot.className = 'sync-dot' + (snap.val() ? '' : ' offline');
+    dot.title = snap.val() ? 'Sincronizado' : 'Sin conexión — guardando local';
+  });
+
   document.getElementById('topbar-fecha').textContent = new Date().toLocaleDateString('es-DO',{
     weekday:'long', day:'numeric', month:'long'
   }).toUpperCase();
@@ -1591,7 +1590,8 @@ function guardarIngrediente() {
   const id = uid();
   const data = { nombre, tipo, cat, unidad, cantCompra, precio, precioPorUnidad, stock: stockTotal, stockMin };
 
-  dot.className = 'sync-dot syncing';
+  const dot = document.getElementById('sync-dot');
+  if (dot) dot.className = 'sync-dot syncing';
   r('ingredientes/' + id).set(data)
     .then(() => {
       // Registrar movimiento de compra inicial si hay cantidad
