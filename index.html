@@ -8,6 +8,11 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<!-- SheetJS para Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- jsPDF para PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@300;400;500;600;700&family=Bebas+Neue&display=swap');
 
@@ -528,7 +533,8 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
 
 <!-- ══════════════ PANTALLA DE ACTIVACIÓN ══════════════ -->
 <div class="activation-screen" id="activation-screen">
-  <div class="activation-box">
+  <!-- PASO 1: Código de negocio -->
+  <div class="activation-box" id="paso-codigo">
     <div class="activation-logo">🍽 COCINA</div>
     <div class="activation-sub">Sistema de gestión</div>
     <div style="font-size:0.82rem;color:var(--text-dim);margin-bottom:20px;line-height:1.6;">
@@ -551,6 +557,44 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
       Si no tienes un código, contacta al administrador.<br>
       El código tiene el formato <strong>COC-XXXX-XXXX</strong>
     </div>
+  </div>
+
+  <!-- PASO 2: Selección de rol -->
+  <div class="activation-box" id="paso-rol" style="display:none;">
+    <div class="activation-logo">🍽 COCINA</div>
+    <div class="activation-sub" id="paso-rol-negocio">Mi Negocio</div>
+    <div style="font-size:0.82rem;color:var(--text-dim);margin-bottom:20px;">
+      ¿Cómo vas a entrar hoy?
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
+      <button class="btn btn-gold btn-full" onclick="seleccionarRol('duena')" style="padding:16px;">
+        👩‍🍳 Soy la dueña
+      </button>
+      <button class="btn btn-ghost btn-full" onclick="seleccionarRol('empleada')" style="padding:16px;">
+        👤 Soy empleada
+      </button>
+    </div>
+  </div>
+
+  <!-- PASO 3: PIN de dueña -->
+  <div class="activation-box" id="paso-pin" style="display:none;">
+    <div class="activation-logo">🔐</div>
+    <div class="activation-sub">Acceso dueña</div>
+    <div style="font-size:0.82rem;color:var(--text-dim);margin-bottom:20px;">
+      Ingresa tu PIN para continuar.
+    </div>
+    <input
+      type="password"
+      class="activation-input"
+      id="pin-input"
+      placeholder="••••"
+      maxlength="8"
+      onkeydown="if(event.key==='Enter') verificarPin()"
+    >
+    <div class="activation-error" id="pin-error"></div>
+    <button class="btn btn-gold btn-full" onclick="verificarPin()">Entrar</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:8px;" onclick="volverARol()">← Volver</button>
+    <div class="activation-hint">PIN por defecto: <strong>1234</strong></div>
   </div>
 </div>
 
@@ -691,21 +735,25 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
   <!-- TAB: EXCEL -->
   <div class="tab-panel" id="ing-tab-excel">
     <div class="card" style="margin-bottom:14px;">
-      <div style="font-size:0.82rem;color:var(--text-dim);line-height:1.6;">
-        Tu Excel debe tener estas columnas en orden:<br>
-        <strong style="color:var(--gold);">A: Nombre · B: Tipo · C: Categoría · D: Unidad · E: Cant.compra · F: Precio · G: Stock · H: Stock mínimo</strong><br><br>
-        Tipo: <em>comida</em> o <em>empaque</em><br>
-        Categoría: <em>solido</em>, <em>liquido</em> o <em>contable</em><br>
-        Unidades sólido: lb, kg, g, oz<br>
-        Unidades líquido: L, ml, taza, fl_oz<br>
-        Unidades contable: unidad, docena, manojo
+      <div style="font-size:0.88rem;font-weight:600;margin-bottom:6px;">1. Descarga la plantilla</div>
+      <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px;line-height:1.6;">
+        La plantilla ya tiene los encabezados correctos y filas de ejemplo. Solo llena tus ingredientes y súbela.
+      </div>
+      <button class="btn btn-ghost btn-full" onclick="descargarPlantilla()">⬇️ Descargar plantilla Excel</button>
+    </div>
+
+    <div class="card" style="margin-bottom:14px;">
+      <div style="font-size:0.88rem;font-weight:600;margin-bottom:6px;">2. Sube tu archivo</div>
+      <div style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px;">
+        Acepta archivos <strong>.xlsx</strong> y <strong>.csv</strong>
+      </div>
+      <div class="upload-area" id="excel-drop">
+        <input type="file" accept=".xlsx,.xls,.csv" onchange="cargarExcel(this)">
+        <p>📊 Toca aquí para seleccionar tu archivo</p>
       </div>
     </div>
-    <div class="upload-area" id="excel-drop">
-      <input type="file" accept=".xlsx,.xls,.csv" onchange="cargarExcel(this)">
-      <p>📊 Toca para subir tu Excel o CSV</p>
-    </div>
-    <div id="excel-preview" style="margin-top:12px;"></div>
+
+    <div id="excel-preview" style="margin-top:4px;"></div>
   </div>
 
   <!-- TAB: MOVIMIENTOS -->
@@ -1008,6 +1056,19 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
     <button class="btn btn-gold btn-full" onclick="guardarAjustes()">Guardar</button>
   </div>
 
+  <div class="section-label">Seguridad</div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="field">
+      <label>PIN de dueña (acceso completo)</label>
+      <input type="password" id="aj-pin" placeholder="Nuevo PIN (mín. 4 dígitos)" maxlength="8">
+    </div>
+    <div class="field">
+      <label>Confirmar PIN</label>
+      <input type="password" id="aj-pin-confirm" placeholder="Repite el PIN" maxlength="8">
+    </div>
+    <button class="btn btn-ghost btn-full" onclick="guardarPin()">Cambiar PIN</button>
+  </div>
+
   <div class="section-label">Datos y respaldo</div>
   <div class="card">
     <div style="font-size:0.8rem;color:var(--text-dim);margin-bottom:12px;line-height:1.6;">
@@ -1042,6 +1103,69 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
   </div>
 </div>
 
+<!-- ══════════════ PÁGINA: REPORTES ══════════════ -->
+<div class="page" id="page-reportes">
+  <div class="page-title">📈 Reportes</div>
+  <div id="notif-rep" class="notif"></div>
+
+  <div class="section-label">Período</div>
+  <div class="card" style="margin-bottom:14px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <button class="btn btn-ghost btn-sm" onclick="setPeriodo('hoy')">Hoy</button>
+      <button class="btn btn-ghost btn-sm" onclick="setPeriodo('semana')">Esta semana</button>
+      <button class="btn btn-ghost btn-sm" onclick="setPeriodo('mes')">Este mes</button>
+      <button class="btn btn-ghost btn-sm" onclick="setPeriodo('personalizado')">Personalizado</button>
+    </div>
+    <div class="field-row">
+      <div class="field" style="margin:0;">
+        <label>Desde</label>
+        <input type="date" id="rep-desde">
+      </div>
+      <div class="field" style="margin:0;">
+        <label>Hasta</label>
+        <input type="date" id="rep-hasta">
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">¿Qué incluir?</div>
+  <div class="card" style="margin-bottom:14px;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <label style="display:flex;align-items:center;gap:10px;font-size:0.88rem;cursor:pointer;">
+        <input type="checkbox" id="rep-inc-ventas" checked style="width:18px;height:18px;accent-color:var(--gold);">
+        Resumen de ventas (total, efectivo, transferencia, crédito)
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:0.88rem;cursor:pointer;">
+        <input type="checkbox" id="rep-inc-ganancia" checked style="width:18px;height:18px;accent-color:var(--gold);">
+        Ganancia neta por día
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:0.88rem;cursor:pointer;">
+        <input type="checkbox" id="rep-inc-creditos" checked style="width:18px;height:18px;accent-color:var(--gold);">
+        Créditos generados y cobrados
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:0.88rem;cursor:pointer;">
+        <input type="checkbox" id="rep-inc-platos" checked style="width:18px;height:18px;accent-color:var(--gold);">
+        Platos más vendidos
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:0.88rem;cursor:pointer;">
+        <input type="checkbox" id="rep-inc-detalle" style="width:18px;height:18px;accent-color:var(--gold);">
+        Detalle de cada venta
+      </label>
+    </div>
+  </div>
+
+  <div class="section-label">Vista previa</div>
+  <div id="rep-preview" class="card" style="min-height:100px;margin-bottom:14px;">
+    <div class="empty"><span class="e-icon">📈</span><p>Selecciona un período y genera el reporte.</p></div>
+  </div>
+
+  <div style="display:flex;gap:10px;">
+    <button class="btn btn-ghost btn-full" onclick="generarReporte()">👁 Vista previa</button>
+    <button class="btn btn-gold" onclick="exportarPDF()" style="white-space:nowrap;">⬇️ PDF</button>
+    <button class="btn btn-green" onclick="exportarExcel()" style="white-space:nowrap;">⬇️ Excel</button>
+  </div>
+</div>
+
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
   <button class="bnav-btn active" onclick="goPage('dashboard',this)">
@@ -1067,6 +1191,10 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
   <button class="bnav-btn" onclick="goPage('creditos',this)">
     <span class="icon">📒</span>
     <span class="label">Créditos</span>
+  </button>
+  <button class="bnav-btn" onclick="goPage('reportes',this)">
+    <span class="icon">📈</span>
+    <span class="label">Reportes</span>
   </button>
   <button class="bnav-btn" onclick="goPage('ajustes',this)">
     <span class="icon">⚙️</span>
@@ -1176,10 +1304,119 @@ const db = firebase.database();
 // MULTITENANT — ID del negocio activo
 // ══════════════════════════════════════════
 let negocioId = localStorage.getItem('negocio_id') || null;
+let rolActual = sessionStorage.getItem('rol_activo') || null; // 'duena' o 'empleada'
 
 // r(path) — prefija todas las rutas con negocios/COC-XXXX-XXXX/
 function r(path) {
   return db.ref('negocios/' + negocioId + '/' + path);
+}
+
+// ══════════════════════════════════════════
+// ROLES
+// ══════════════════════════════════════════
+function seleccionarRol(rol) {
+  if (rol === 'duena') {
+    document.getElementById('paso-rol').style.display = 'none';
+    document.getElementById('paso-pin').style.display = 'block';
+    setTimeout(() => document.getElementById('pin-input').focus(), 100);
+  } else {
+    // Empleada — entra directo sin PIN
+    rolActual = 'empleada';
+    sessionStorage.setItem('rol_activo', 'empleada');
+    document.getElementById('activation-screen').style.display = 'none';
+    arrancarApp();
+  }
+}
+
+function volverARol() {
+  document.getElementById('paso-pin').style.display = 'none';
+  document.getElementById('paso-rol').style.display = 'block';
+  document.getElementById('pin-error').textContent = '';
+  document.getElementById('pin-input').value = '';
+}
+
+async function verificarPin() {
+  const pin = document.getElementById('pin-input').value;
+  const errorEl = document.getElementById('pin-error');
+
+  if (!pin) { errorEl.textContent = 'Ingresa tu PIN'; return; }
+
+  try {
+    const snap = await r('ajustes/pin').once('value');
+    const pinGuardado = snap.val() || '1234';
+
+    if (pin === pinGuardado) {
+      rolActual = 'duena';
+      sessionStorage.setItem('rol_activo', 'duena');
+      document.getElementById('activation-screen').style.display = 'none';
+      arrancarApp();
+    } else {
+      errorEl.textContent = 'PIN incorrecto';
+      document.getElementById('pin-input').value = '';
+      document.getElementById('pin-input').focus();
+    }
+  } catch(e) {
+    // Si no hay PIN configurado, usar 1234 por defecto
+    const pin1234 = document.getElementById('pin-input').value === '1234';
+    if (pin1234) {
+      rolActual = 'duena';
+      sessionStorage.setItem('rol_activo', 'duena');
+      document.getElementById('activation-screen').style.display = 'none';
+      arrancarApp();
+    } else {
+      errorEl.textContent = 'PIN incorrecto. Por defecto es 1234';
+    }
+  }
+}
+
+function aplicarRestriccionesRol() {
+  if (rolActual === 'empleada') {
+    // Ocultar secciones restringidas en el nav
+    document.querySelectorAll('.bnav-btn').forEach(btn => {
+      const onclick = btn.getAttribute('onclick') || '';
+      const restringidas = ['ingredientes','recetas','reportes','ajustes'];
+      if (restringidas.some(r => onclick.includes(r))) {
+        btn.style.display = 'none';
+      }
+    });
+    // Ocultar costos y márgenes en dashboard
+    const dGastos = document.getElementById('d-gastos');
+    const dGanancia = document.getElementById('d-ganancia');
+    if (dGastos) dGastos.closest('.dash-box').style.display = 'none';
+    if (dGanancia) dGanancia.closest('.dash-box').style.display = 'none';
+    // Agregar badge de rol en topbar
+    const brand = document.querySelector('.topbar-brand');
+    if (brand && !document.getElementById('rol-badge')) {
+      const badge = document.createElement('span');
+      badge.id = 'rol-badge';
+      badge.style.cssText = 'font-size:0.6rem;background:var(--blue-dim);color:var(--blue);border:1px solid var(--blue);border-radius:10px;padding:2px 8px;letter-spacing:1px;font-family:var(--body);font-weight:600;';
+      badge.textContent = 'EMPLEADA';
+      brand.parentNode.insertBefore(badge, brand.nextSibling);
+    }
+  } else {
+    // Dueña — acceso total, mostrar badge
+    const brand = document.querySelector('.topbar-brand');
+    if (brand && !document.getElementById('rol-badge')) {
+      const badge = document.createElement('span');
+      badge.id = 'rol-badge';
+      badge.style.cssText = 'font-size:0.6rem;background:var(--gold-dim);color:var(--gold);border:1px solid var(--gold);border-radius:10px;padding:2px 8px;letter-spacing:1px;font-family:var(--body);font-weight:600;cursor:pointer;';
+      badge.textContent = 'DUEÑA';
+      badge.title = 'Click para cambiar rol';
+      badge.onclick = cambiarRol;
+      brand.parentNode.insertBefore(badge, brand.nextSibling);
+    }
+  }
+}
+
+function cambiarRol() {
+  if (!confirm('¿Cambiar de rol? Tendrás que seleccionar tu acceso de nuevo.')) return;
+  sessionStorage.removeItem('rol_activo');
+  rolActual = null;
+  // Mostrar pantalla de selección de rol
+  document.getElementById('activation-screen').style.display = 'flex';
+  document.getElementById('paso-codigo').style.display = 'none';
+  document.getElementById('paso-rol').style.display = 'block';
+  document.getElementById('paso-pin').style.display = 'none';
 }
 
 // ══════════════════════════════════════════
@@ -1237,11 +1474,18 @@ async function activarCodigo() {
       return;
     }
 
-    // Código válido — guardar y arrancar
+    // Código válido — mostrar selección de rol
     localStorage.setItem('negocio_id', codigo);
     negocioId = codigo;
-    document.getElementById('activation-screen').style.display = 'none';
-    arrancarApp();
+
+    // Cargar nombre del negocio para mostrarlo
+    const ajSnap = await db.ref('negocios/' + codigo + '/ajustes/nombre').once('value');
+    const nombreNegocio = ajSnap.val() || 'Mi Negocio';
+    document.getElementById('paso-rol-negocio').textContent = nombreNegocio.toUpperCase();
+
+    // Ir a selección de rol
+    document.getElementById('paso-codigo').style.display = 'none';
+    document.getElementById('paso-rol').style.display = 'block';
 
   } catch(e) {
     clearTimeout(timeout);
@@ -1338,6 +1582,7 @@ function arrancarApp() {
   actualizarUnidades();
   initListeners();
   cargarAjustes();
+  aplicarRestriccionesRol();
 
   r('gastosDia').on('value', snap => {
     state.gastosDia = snap.val() || {};
@@ -1761,6 +2006,71 @@ function confirmarCompra(id) {
 // ══════════════════════════════════════════
 // EXCEL / CSV
 // ══════════════════════════════════════════
+function descargarPlantilla() {
+  const wb = XLSX.utils.book_new();
+
+  // Hoja de ingredientes con encabezados y ejemplos
+  const datos = [
+    // Encabezados
+    ['Nombre', 'Tipo', 'Categoría', 'Unidad', 'Cantidad que compras', 'Precio que pagas (RD$)', 'Stock que tienes', 'Stock mínimo (alerta)'],
+    // Filas de ejemplo
+    ['Pollo', 'comida', 'solido', 'lb', 3, 180, 3, 1],
+    ['Arroz', 'comida', 'solido', 'lb', 5, 85, 5, 2],
+    ['Aceite', 'comida', 'liquido', 'L', 1, 120, 1, 0.25],
+    ['Ajo', 'comida', 'contable', 'unidad', 10, 20, 10, 3],
+    ['Platos desechables', 'empaque', 'contable', 'unidad', 100, 300, 100, 20],
+    ['Fundas', 'empaque', 'contable', 'unidad', 50, 80, 50, 10],
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(datos);
+
+  // Ancho de columnas
+  ws['!cols'] = [
+    { wch: 22 }, // Nombre
+    { wch: 10 }, // Tipo
+    { wch: 12 }, // Categoría
+    { wch: 10 }, // Unidad
+    { wch: 22 }, // Cantidad
+    { wch: 22 }, // Precio
+    { wch: 18 }, // Stock
+    { wch: 20 }, // Stock mínimo
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Ingredientes');
+
+  // Hoja de referencia con los valores válidos
+  const ref = [
+    ['REFERENCIA — Valores válidos por columna'],
+    [],
+    ['TIPO', 'Descripción'],
+    ['comida', 'Ingredientes que entran en las recetas (arroz, pollo, aceite...)'],
+    ['empaque', 'Materiales de empaque (platos, fundas, cucharas...)'],
+    [],
+    ['CATEGORÍA', 'Descripción'],
+    ['solido', 'Se mide en peso (lb, kg, g, oz)'],
+    ['liquido', 'Se mide en volumen (L, ml, taza, fl_oz)'],
+    ['contable', 'Se cuenta por unidades (unidad, docena, manojo)'],
+    [],
+    ['UNIDADES SÓLIDO', 'lb · kg · g · oz'],
+    ['UNIDADES LÍQUIDO', 'L · ml · taza · fl_oz'],
+    ['UNIDADES CONTABLE', 'unidad · docena · manojo'],
+    [],
+    ['NOTAS'],
+    ['- La fila 1 son los encabezados, no la borres'],
+    ['- Las filas 2 en adelante son tus ingredientes'],
+    ['- Borra las filas de ejemplo antes de subir'],
+    ['- El precio es lo que pagaste por la cantidad indicada (no por unidad)'],
+    ['- Stock mínimo: cuando baje de ese número te aparece una alerta'],
+  ];
+
+  const wsRef = XLSX.utils.aoa_to_sheet(ref);
+  wsRef['!cols'] = [{ wch: 20 }, { wch: 55 }];
+  XLSX.utils.book_append_sheet(wb, wsRef, 'Referencia');
+
+  XLSX.writeFile(wb, 'plantilla-ingredientes.xlsx');
+  notif('notif-ing', '✅ Plantilla descargada', 'green');
+}
+
 function cargarExcel(input) {
   const file = input.files[0];
   if (!file) return;
@@ -3179,9 +3489,22 @@ function resetearDatos(que) {
     .catch(e => notif('notif-ajustes', 'Error: ' + e.message, 'red'));
 }
 
+function guardarPin() {
+  const pin = document.getElementById('aj-pin').value;
+  const confirm = document.getElementById('aj-pin-confirm').value;
+  if (!pin || pin.length < 4) { notif('notif-ajustes','El PIN debe tener al menos 4 dígitos','red'); return; }
+  if (pin !== confirm) { notif('notif-ajustes','Los PINs no coinciden','red'); return; }
+  r('ajustes/pin').set(pin).then(() => {
+    notif('notif-ajustes','✅ PIN actualizado','green');
+    document.getElementById('aj-pin').value = '';
+    document.getElementById('aj-pin-confirm').value = '';
+  }).catch(e => notif('notif-ajustes','Error: '+e.message,'red'));
+}
+
 function cerrarSesionNegocio() {
   if (!confirm('¿Cambiar de negocio? Se te pedirá un nuevo código de activación.')) return;
   localStorage.removeItem('negocio_id');
+  sessionStorage.removeItem('rol_activo');
   location.reload();
 }
 
@@ -3356,18 +3679,436 @@ function iniciarTema() {
 }
 
 // ══════════════════════════════════════════
-// BOOT — verificar si ya tiene código guardado
+// REPORTES
+// ══════════════════════════════════════════
+function setPeriodo(tipo) {
+  const hoyStr = hoy();
+  const desde = document.getElementById('rep-desde');
+  const hasta = document.getElementById('rep-hasta');
+
+  if (tipo === 'hoy') {
+    desde.value = hoyStr;
+    hasta.value = hoyStr;
+  } else if (tipo === 'semana') {
+    const d = new Date();
+    const lunes = new Date(d);
+    lunes.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    desde.value = lunes.toISOString().split('T')[0];
+    hasta.value = hoyStr;
+  } else if (tipo === 'mes') {
+    desde.value = hoyStr.substring(0, 7) + '-01';
+    hasta.value = hoyStr;
+  }
+  // personalizado — el usuario elige fechas manualmente
+}
+
+async function cargarVentasPeriodo(desde, hasta) {
+  // Determinar meses a consultar
+  const meses = [];
+  let cursor = new Date(desde + 'T00:00:00');
+  const fin = new Date(hasta + 'T00:00:00');
+  while (cursor <= fin) {
+    const mes = cursor.toISOString().substring(0, 7).replace('-', '/');
+    if (!meses.includes(mes)) meses.push(mes);
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  const snaps = await Promise.all(meses.map(mes => r('ventas/' + mes).once('value')));
+  const ventas = [];
+  snaps.forEach(snap => {
+    const mes = snap.val() || {};
+    Object.entries(mes).forEach(([dia, ventasDia]) => {
+      Object.entries(ventasDia || {}).forEach(([id, v]) => {
+        if (v.fecha >= desde && v.fecha <= hasta) {
+          ventas.push({ id, ...v });
+        }
+      });
+    });
+  });
+  return ventas.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+}
+
+function calcularDatosReporte(ventas) {
+  const ventasReales = ventas.filter(v => v.tipo !== 'abono');
+  const abonos = ventas.filter(v => v.tipo === 'abono');
+
+  // Totales generales
+  let totalVentas = 0, totalEfectivo = 0, totalTransfer = 0;
+  let totalCreditoGenerado = 0, totalAbonado = 0;
+  let costoReal = 0;
+
+  // Por día
+  const porDia = {};
+  // Platos vendidos
+  const platosConteo = {};
+
+  ventasReales.forEach(v => {
+    totalVentas += v.total || 0;
+    totalEfectivo += v.efectivo || 0;
+    totalTransfer += v.transfer || 0;
+    totalCreditoGenerado += v.credito || 0;
+
+    // Costo real
+    (v.items || []).forEach(item => {
+      const rec = state.recetas[item.recetaId];
+      if (rec) costoReal += (rec.costoPorcion || 0) * (item.cantidad || 0);
+
+      // Conteo de platos
+      const nombre = item.nombre || 'Sin nombre';
+      if (!platosConteo[nombre]) platosConteo[nombre] = { cantidad: 0, total: 0 };
+      platosConteo[nombre].cantidad += item.cantidad || 0;
+      platosConteo[nombre].total += (item.precioUnit || 0) * (item.cantidad || 0);
+    });
+
+    // Agrupar por día
+    const fecha = v.fecha || '—';
+    if (!porDia[fecha]) porDia[fecha] = { ventas: 0, costo: 0, cantidad: 0 };
+    porDia[fecha].ventas += v.total || 0;
+    porDia[fecha].costo += (v.items || []).reduce((s, item) => {
+      const rec = state.recetas[item.recetaId];
+      return s + ((rec?.costoPorcion || 0) * (item.cantidad || 0));
+    }, 0);
+    porDia[fecha].cantidad += v.porciones || 0;
+  });
+
+  abonos.forEach(a => {
+    totalAbonado += Math.abs(a.credito || 0);
+  });
+
+  const gananciaReal = totalVentas - costoReal;
+  const platosMasVendidos = Object.entries(platosConteo)
+    .sort((a, b) => b[1].cantidad - a[1].cantidad)
+    .slice(0, 10);
+
+  return {
+    totalVentas, totalEfectivo, totalTransfer,
+    totalCreditoGenerado, totalAbonado,
+    costoReal, gananciaReal,
+    porDia, platosMasVendidos,
+    totalVentasReales: ventasReales.length
+  };
+}
+
+async function generarReporte() {
+  const desde = document.getElementById('rep-desde').value;
+  const hasta = document.getElementById('rep-hasta').value;
+
+  if (!desde || !hasta) {
+    notif('notif-rep', 'Selecciona un período', 'red');
+    return;
+  }
+
+  const preview = document.getElementById('rep-preview');
+  preview.innerHTML = '<div class="empty"><span class="e-icon">⏳</span><p>Calculando...</p></div>';
+
+  const ventas = await cargarVentasPeriodo(desde, hasta);
+  const datos = calcularDatosReporte(ventas);
+  const ajustes = await r('ajustes').once('value').then(s => s.val() || {});
+  const negocio = ajustes.nombre || 'Mi Cocina';
+
+  // Guardar para exportar
+  window._reporteDatos = { datos, ventas, desde, hasta, negocio };
+
+  const incVentas = document.getElementById('rep-inc-ventas').checked;
+  const incGanancia = document.getElementById('rep-inc-ganancia').checked;
+  const incCreditos = document.getElementById('rep-inc-creditos').checked;
+  const incPlatos = document.getElementById('rep-inc-platos').checked;
+  const incDetalle = document.getElementById('rep-inc-detalle').checked;
+
+  let html = `
+    <div style="font-family:var(--title);font-size:1.3rem;letter-spacing:2px;color:var(--gold);margin-bottom:4px;">${negocio.toUpperCase()}</div>
+    <div style="font-size:0.72rem;color:var(--text-mute);margin-bottom:16px;">Reporte del ${fmtFecha(desde)} al ${fmtFecha(hasta)}</div>
+  `;
+
+  if (incVentas) {
+    html += `
+      <div class="section-label">Resumen de ventas</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div class="dash-box"><div class="dash-val green">${moneda(datos.totalVentas)}</div><div class="dash-lbl">Total vendido</div></div>
+        <div class="dash-box"><div class="dash-val gold">${moneda(datos.gananciaReal)}</div><div class="dash-lbl">Ganancia neta</div></div>
+        <div class="dash-box"><div class="dash-val" style="color:var(--text)">${moneda(datos.totalEfectivo)}</div><div class="dash-lbl">Efectivo</div></div>
+        <div class="dash-box"><div class="dash-val" style="color:var(--text)">${moneda(datos.totalTransfer)}</div><div class="dash-lbl">Transferencia</div></div>
+      </div>
+    `;
+  }
+
+  if (incCreditos) {
+    html += `
+      <div class="section-label">Créditos</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+        <div class="dash-box"><div class="dash-val red">${moneda(datos.totalCreditoGenerado)}</div><div class="dash-lbl">Crédito generado</div></div>
+        <div class="dash-box"><div class="dash-val green">${moneda(datos.totalAbonado)}</div><div class="dash-lbl">Abonado</div></div>
+      </div>
+    `;
+  }
+
+  if (incGanancia && Object.keys(datos.porDia).length > 0) {
+    html += `<div class="section-label">Ganancia por día</div>`;
+    html += Object.entries(datos.porDia).map(([fecha, d]) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:0.82rem;">${fmtFecha(fecha)}</span>
+        <span style="font-size:0.82rem;color:var(--text-dim);">${d.cantidad} porc.</span>
+        <span style="font-family:var(--title);color:var(--gold);">${moneda(d.ventas - d.costo)}</span>
+      </div>
+    `).join('');
+    html += '<div style="margin-bottom:14px;"></div>';
+  }
+
+  if (incPlatos && datos.platosMasVendidos.length) {
+    html += `<div class="section-label">Platos más vendidos</div>`;
+    html += datos.platosMasVendidos.map(([nombre, d], i) => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
+        <span style="font-size:0.82rem;">${i + 1}. ${nombre}</span>
+        <span style="font-size:0.78rem;color:var(--text-dim);">${d.cantidad} uds.</span>
+        <span style="font-family:var(--title);color:var(--gold);">${moneda(d.total)}</span>
+      </div>
+    `).join('');
+    html += '<div style="margin-bottom:14px;"></div>';
+  }
+
+  if (incDetalle) {
+    const ventasReales = ventas.filter(v => v.tipo !== 'abono');
+    html += `<div class="section-label">Detalle de ventas (${ventasReales.length})</div>`;
+    html += ventasReales.map(v => `
+      <div style="padding:8px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;">
+          <span style="font-size:0.8rem;">${fmtFecha(v.fecha)} ${v.cliente ? '· ' + v.cliente : ''}</span>
+          <span style="font-family:var(--title);color:var(--gold);">${moneda(v.total)}</span>
+        </div>
+        <div style="font-size:0.72rem;color:var(--text-mute);">${(v.items || []).map(i => i.nombre + ' x' + i.cantidad).join(', ')}</div>
+      </div>
+    `).join('');
+  }
+
+  preview.innerHTML = html;
+}
+
+async function exportarPDF() {
+  if (!window._reporteDatos) { notif('notif-rep', 'Primero genera la vista previa', 'gold'); return; }
+
+  const { datos, ventas, desde, hasta, negocio } = window._reporteDatos;
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const incVentas = document.getElementById('rep-inc-ventas').checked;
+  const incGanancia = document.getElementById('rep-inc-ganancia').checked;
+  const incCreditos = document.getElementById('rep-inc-creditos').checked;
+  const incPlatos = document.getElementById('rep-inc-platos').checked;
+  const incDetalle = document.getElementById('rep-inc-detalle').checked;
+
+  let y = 15;
+
+  // Encabezado
+  doc.setFontSize(18);
+  doc.setTextColor(180, 83, 9);
+  doc.text(negocio.toUpperCase(), 105, y, { align: 'center' });
+  y += 8;
+  doc.setFontSize(10);
+  doc.setTextColor(100);
+  doc.text(`Reporte del ${fmtFecha(desde)} al ${fmtFecha(hasta)}`, 105, y, { align: 'center' });
+  y += 12;
+
+  doc.setTextColor(0);
+
+  if (incVentas) {
+    doc.setFontSize(12);
+    doc.setTextColor(180, 83, 9);
+    doc.text('Resumen de ventas', 14, y); y += 7;
+    doc.autoTable({
+      startY: y,
+      head: [['Concepto', 'Monto']],
+      body: [
+        ['Total vendido', moneda(datos.totalVentas)],
+        ['Ganancia neta', moneda(datos.gananciaReal)],
+        ['Costo real', moneda(datos.costoReal)],
+        ['Efectivo', moneda(datos.totalEfectivo)],
+        ['Transferencia', moneda(datos.totalTransfer)],
+      ],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [180, 83, 9] },
+      margin: { left: 14, right: 14 }
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  }
+
+  if (incCreditos) {
+    doc.setFontSize(12);
+    doc.setTextColor(180, 83, 9);
+    doc.text('Créditos', 14, y); y += 7;
+    doc.autoTable({
+      startY: y,
+      head: [['Concepto', 'Monto']],
+      body: [
+        ['Crédito generado', moneda(datos.totalCreditoGenerado)],
+        ['Total abonado', moneda(datos.totalAbonado)],
+        ['Balance pendiente', moneda(datos.totalCreditoGenerado - datos.totalAbonado)],
+      ],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [180, 83, 9] },
+      margin: { left: 14, right: 14 }
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  }
+
+  if (incGanancia && Object.keys(datos.porDia).length) {
+    doc.setFontSize(12);
+    doc.setTextColor(180, 83, 9);
+    doc.text('Ganancia por día', 14, y); y += 7;
+    doc.autoTable({
+      startY: y,
+      head: [['Fecha', 'Porciones', 'Ventas', 'Costo', 'Ganancia']],
+      body: Object.entries(datos.porDia).map(([fecha, d]) => [
+        fmtFecha(fecha), d.cantidad, moneda(d.ventas), moneda(d.costo), moneda(d.ventas - d.costo)
+      ]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [180, 83, 9] },
+      margin: { left: 14, right: 14 }
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  }
+
+  if (incPlatos && datos.platosMasVendidos.length) {
+    doc.setFontSize(12);
+    doc.setTextColor(180, 83, 9);
+    doc.text('Platos más vendidos', 14, y); y += 7;
+    doc.autoTable({
+      startY: y,
+      head: [['Plato', 'Cantidad', 'Total']],
+      body: datos.platosMasVendidos.map(([nombre, d]) => [nombre, d.cantidad, moneda(d.total)]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [180, 83, 9] },
+      margin: { left: 14, right: 14 }
+    });
+    y = doc.lastAutoTable.finalY + 10;
+  }
+
+  if (incDetalle) {
+    const ventasReales = ventas.filter(v => v.tipo !== 'abono');
+    doc.setFontSize(12);
+    doc.setTextColor(180, 83, 9);
+    doc.text('Detalle de ventas', 14, y); y += 7;
+    doc.autoTable({
+      startY: y,
+      head: [['Fecha', 'Cliente', 'Platos', 'Total']],
+      body: ventasReales.map(v => [
+        fmtFecha(v.fecha),
+        v.cliente || '—',
+        (v.items || []).map(i => i.nombre + ' x' + i.cantidad).join(', '),
+        moneda(v.total)
+      ]),
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [180, 83, 9] },
+      margin: { left: 14, right: 14 }
+    });
+  }
+
+  // Pie de página
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(`${negocio} · Página ${i} de ${pageCount}`, 105, doc.internal.pageSize.height - 8, { align: 'center' });
+  }
+
+  doc.save(`reporte-${desde}-${hasta}.pdf`);
+  notif('notif-rep', '✅ PDF descargado', 'green');
+}
+
+async function exportarExcel() {
+  if (!window._reporteDatos) { notif('notif-rep', 'Primero genera la vista previa', 'gold'); return; }
+
+  const { datos, ventas, desde, hasta, negocio } = window._reporteDatos;
+  const wb = XLSX.utils.book_new();
+  const incVentas = document.getElementById('rep-inc-ventas').checked;
+  const incGanancia = document.getElementById('rep-inc-ganancia').checked;
+  const incPlatos = document.getElementById('rep-inc-platos').checked;
+  const incDetalle = document.getElementById('rep-inc-detalle').checked;
+  const incCreditos = document.getElementById('rep-inc-creditos').checked;
+
+  // Hoja 1: Resumen
+  if (incVentas || incCreditos) {
+    const resumen = [
+      [negocio.toUpperCase()],
+      [`Reporte del ${fmtFecha(desde)} al ${fmtFecha(hasta)}`],
+      [],
+      ['RESUMEN GENERAL'],
+      ['Total vendido', datos.totalVentas],
+      ['Ganancia neta', datos.gananciaReal],
+      ['Costo real', datos.costoReal],
+      ['Efectivo', datos.totalEfectivo],
+      ['Transferencia', datos.totalTransfer],
+      [],
+      ['CRÉDITOS'],
+      ['Crédito generado', datos.totalCreditoGenerado],
+      ['Total abonado', datos.totalAbonado],
+      ['Balance pendiente', datos.totalCreditoGenerado - datos.totalAbonado],
+    ];
+    const ws1 = XLSX.utils.aoa_to_sheet(resumen);
+    XLSX.utils.book_append_sheet(wb, ws1, 'Resumen');
+  }
+
+  // Hoja 2: Por día
+  if (incGanancia && Object.keys(datos.porDia).length) {
+    const filas = [['Fecha', 'Porciones', 'Ventas', 'Costo', 'Ganancia']];
+    Object.entries(datos.porDia).forEach(([fecha, d]) => {
+      filas.push([fmtFecha(fecha), d.cantidad, d.ventas, d.costo, d.ventas - d.costo]);
+    });
+    const ws2 = XLSX.utils.aoa_to_sheet(filas);
+    XLSX.utils.book_append_sheet(wb, ws2, 'Por Día');
+  }
+
+  // Hoja 3: Platos
+  if (incPlatos && datos.platosMasVendidos.length) {
+    const filas = [['Plato', 'Cantidad vendida', 'Total RD$']];
+    datos.platosMasVendidos.forEach(([nombre, d]) => {
+      filas.push([nombre, d.cantidad, d.total]);
+    });
+    const ws3 = XLSX.utils.aoa_to_sheet(filas);
+    XLSX.utils.book_append_sheet(wb, ws3, 'Platos');
+  }
+
+  // Hoja 4: Detalle
+  if (incDetalle) {
+    const ventasReales = ventas.filter(v => v.tipo !== 'abono');
+    const filas = [['Fecha', 'Cliente', 'Método pago', 'Platos', 'Total RD$']];
+    ventasReales.forEach(v => {
+      filas.push([
+        v.fecha,
+        v.cliente || '—',
+        v.metodoPago || '—',
+        (v.items || []).map(i => i.nombre + ' x' + i.cantidad).join(', '),
+        v.total
+      ]);
+    });
+    const ws4 = XLSX.utils.aoa_to_sheet(filas);
+    XLSX.utils.book_append_sheet(wb, ws4, 'Detalle');
+  }
+
+  XLSX.writeFile(wb, `reporte-${desde}-${hasta}.xlsx`);
+  notif('notif-rep', '✅ Excel descargado', 'green');
+}
+
+// ══════════════════════════════════════════
+// BOOT — verificar si ya tiene código y rol
 // ══════════════════════════════════════════
 
 // Aplicar tema inmediatamente para evitar flash
 iniciarTema();
 
-if (negocioId) {
-  // Ya activado — ocultar pantalla y arrancar directo
+if (negocioId && rolActual) {
+  // Ya tiene código Y rol activo — arrancar directo
   document.getElementById('activation-screen').style.display = 'none';
   arrancarApp();
+} else if (negocioId && !rolActual) {
+  // Tiene código pero no rol — mostrar selección de rol
+  db.ref('negocios/' + negocioId + '/ajustes/nombre').once('value').then(snap => {
+    const nombre = snap.val() || 'Mi Negocio';
+    document.getElementById('paso-rol-negocio').textContent = nombre.toUpperCase();
+  }).catch(() => {});
+  document.getElementById('paso-codigo').style.display = 'none';
+  document.getElementById('paso-rol').style.display = 'block';
 }
-// Si no tiene código, la pantalla de activación ya está visible
+// Si no tiene código, la pantalla de activación ya está visible con paso-codigo
 
 </script>
 </body>
