@@ -3,7 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Loraine Cocina</title>
+<title>Paila</title>
+<meta name="application-name" content="Paila">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Paila">
+<meta name="theme-color" content="#0c0c0c">
+<meta name="description" content="Sistema de gestión para negocios de cocina casera">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAACvklEQVR42u3cwY0CMRQFQQfg0AiUVIhqEDfOc/HYXUgdwD7/kjisGOMhnznnpVaj9PHgygHxiEpi8GDKQfA4ymLwGEoi8ADKQjC6sgiMrSQCAysLwajKIjCm0ggMqSwAIyqLwHjKIjCa0ggMpiwAYymLwEhKIzCQAJCKAIyjNALDKAvAKEojMIgAkIoAjKE0AkMIAAkACQAJAAkACQDpYABGEAASABIAW/R5v3QjBw8AAAIAAAEAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADgPACn/n0OHgAABAAAAgAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADgt0H9NigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgGMGAAABAIAAAEAAAOBQBAAAAgAAAQCAAABAAAAgAAAQAAAIAAAEAAACAAABAAAAAAAAAAAAAAAAAAAA4DAAAEAAACAAABAAAAgAAAQAAAIAAAEAgAAAQAAAIAAAEAAACAAABAAAAgAAAQCAAABAAAAgAAAQAAAIAAAEAAACAAABAIAAAEAAACAAABAAAAgAAAQAAAIAAAEAgAAAQAAAIAAAEAAACAAABAAAOh6ABIAEgASABIB0C8DvYwgBIAEgASABIAEgAbDn//NorwAQAKsArEDg0bUawPj/+D6o5Pd/AAQABKofPwDKA4BA6eMHQAAYSGUAECh9/BAof/wAKA8AAqWPHwLljx8C5Y8fAOUBQKD08UOg/PGDoPzhQyDHD4EcPwhy+BDI8cMgRw+CHD4M2u/ov/2cH1GyhHkCAAAAAElFTkSuQmCC">
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAACvklEQVR42u3cwY0CMRQFQQfg0AiUVIhqEDfOc/HYXUgdwD7/kjisGOMhnznnpVaj9PHgygHxiEpi8GDKQfA4ymLwGEoi8ADKQjC6sgiMrSQCAysLwajKIjCm0ggMqSwAIyqLwHjKIjCa0ggMpiwAYymLwEhKIzCQAJCKAIyjNALDKAvAKEojMIgAkIoAjKE0AkMIAAkACQAJAAkACQDpYABGEAASABIAW/R5v3QjBw8AAAIAAAEAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADgPACn/n0OHgAABAAAAgAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADgt0H9NigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgGMGAAABAIAAAEAAAOBQBAAAAgAAAQCAAABAAAAgAAAQAAAIAAAEAAACAAABAAAAAAAAAAAAAAAAAAAA4DAAAEAAACAAABAAAAgAAAQAAAIAAAEAgAAAQAAAIAAAEAAACAAABAAAAgAAAQCAAABAAAAgAAAQAAAIAAAEAAACAAABAIAAAEAAACAAABAAAAgAAAQAAAIAAAEAgAAAQAAAIAAAEAAACAAABAAAOh6ABIAEgASABIB0C8DvYwgBIAEgASABIAEgAbDn//NorwAQAKsArEDg0bUawPj/+D6o5Pd/AAQABKofPwDKA4BA6eMHQAAYSGUAECh9/BAof/wAKA8AAqWPHwLljx8C5Y8fAOUBQKD08UOg/PGDoPzhQyDHD4EcPwhy+BDI8cMgRw+CHD4M2u/ov/2cH1GyhHkCAAAAAElFTkSuQmCC">
 
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -600,7 +608,7 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
 
 <!-- TOPBAR -->
 <div class="topbar">
-  <div class="topbar-brand">🍽 LORAINE</div>
+  <div class="topbar-brand">🍽 PAILA</div>
   <div class="topbar-day" id="topbar-fecha"></div>
   <button class="theme-toggle" id="theme-toggle-btn" onclick="toggleTema()" title="Cambiar tema">🌙</button>
   <div class="sync-dot" id="sync-dot" title="Sincronizado"></div>
@@ -1138,6 +1146,10 @@ hr.div { border:none; border-top:1px solid var(--border); margin:18px 0; }
       <label style="display:flex;align-items:center;gap:10px;font-size:0.88rem;cursor:pointer;">
         <input type="checkbox" id="rep-inc-ganancia" checked style="width:18px;height:18px;accent-color:var(--gold);">
         Ganancia neta por día
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:0.88rem;cursor:pointer;">
+        <input type="checkbox" id="rep-inc-gastos" checked style="width:18px;height:18px;accent-color:var(--gold);">
+        Gastos de compras (ingredientes e insumos)
       </label>
       <label style="display:flex;align-items:center;gap:10px;font-size:0.88rem;cursor:pointer;">
         <input type="checkbox" id="rep-inc-creditos" checked style="width:18px;height:18px;accent-color:var(--gold);">
@@ -3728,18 +3740,15 @@ async function cargarVentasPeriodo(desde, hasta) {
   return ventas.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
 }
 
-function calcularDatosReporte(ventas) {
+function calcularDatosReporte(ventas, desde, hasta) {
   const ventasReales = ventas.filter(v => v.tipo !== 'abono');
   const abonos = ventas.filter(v => v.tipo === 'abono');
 
-  // Totales generales
   let totalVentas = 0, totalEfectivo = 0, totalTransfer = 0;
   let totalCreditoGenerado = 0, totalAbonado = 0;
   let costoReal = 0;
 
-  // Por día
   const porDia = {};
-  // Platos vendidos
   const platosConteo = {};
 
   ventasReales.forEach(v => {
@@ -3748,21 +3757,18 @@ function calcularDatosReporte(ventas) {
     totalTransfer += v.transfer || 0;
     totalCreditoGenerado += v.credito || 0;
 
-    // Costo real
     (v.items || []).forEach(item => {
       const rec = state.recetas[item.recetaId];
       if (rec) costoReal += (rec.costoPorcion || 0) * (item.cantidad || 0);
 
-      // Conteo de platos
       const nombre = item.nombre || 'Sin nombre';
       if (!platosConteo[nombre]) platosConteo[nombre] = { cantidad: 0, total: 0 };
       platosConteo[nombre].cantidad += item.cantidad || 0;
       platosConteo[nombre].total += (item.precioUnit || 0) * (item.cantidad || 0);
     });
 
-    // Agrupar por día
     const fecha = v.fecha || '—';
-    if (!porDia[fecha]) porDia[fecha] = { ventas: 0, costo: 0, cantidad: 0 };
+    if (!porDia[fecha]) porDia[fecha] = { ventas: 0, costo: 0, gastos: 0, cantidad: 0 };
     porDia[fecha].ventas += v.total || 0;
     porDia[fecha].costo += (v.items || []).reduce((s, item) => {
       const rec = state.recetas[item.recetaId];
@@ -3775,7 +3781,31 @@ function calcularDatosReporte(ventas) {
     totalAbonado += Math.abs(a.credito || 0);
   });
 
+  // Gastos de compras del período (desde gastosDia en Firebase)
+  const gastosDelPeriodo = Object.values(state.gastosDia || {})
+    .filter(g => g.fecha >= desde && g.fecha <= hasta);
+  const totalGastosCompras = gastosDelPeriodo.reduce((s, g) => s + (g.monto || 0), 0);
+
+  // Agrupar gastos por día
+  gastosDelPeriodo.forEach(g => {
+    const fecha = g.fecha || '—';
+    if (!porDia[fecha]) porDia[fecha] = { ventas: 0, costo: 0, gastos: 0, cantidad: 0 };
+    porDia[fecha].gastos += g.monto || 0;
+  });
+
+  // Detalle de gastos para reporte
+  const detalleGastos = gastosDelPeriodo
+    .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''))
+    .map(g => ({
+      fecha: g.fecha,
+      nombre: g.nombre || 'Compra',
+      cantidad: g.cantidad,
+      unidad: g.unidad,
+      monto: g.monto || 0
+    }));
+
   const gananciaReal = totalVentas - costoReal;
+
   const platosMasVendidos = Object.entries(platosConteo)
     .sort((a, b) => b[1].cantidad - a[1].cantidad)
     .slice(0, 10);
@@ -3784,6 +3814,7 @@ function calcularDatosReporte(ventas) {
     totalVentas, totalEfectivo, totalTransfer,
     totalCreditoGenerado, totalAbonado,
     costoReal, gananciaReal,
+    totalGastosCompras, detalleGastos,
     porDia, platosMasVendidos,
     totalVentasReales: ventasReales.length
   };
@@ -3802,7 +3833,7 @@ async function generarReporte() {
   preview.innerHTML = '<div class="empty"><span class="e-icon">⏳</span><p>Calculando...</p></div>';
 
   const ventas = await cargarVentasPeriodo(desde, hasta);
-  const datos = calcularDatosReporte(ventas);
+  const datos = calcularDatosReporte(ventas, desde, hasta);
   const ajustes = await r('ajustes').once('value').then(s => s.val() || {});
   const negocio = ajustes.nombre || 'Mi Cocina';
 
@@ -3811,6 +3842,7 @@ async function generarReporte() {
 
   const incVentas = document.getElementById('rep-inc-ventas').checked;
   const incGanancia = document.getElementById('rep-inc-ganancia').checked;
+  const incGastos = document.getElementById('rep-inc-gastos').checked;
   const incCreditos = document.getElementById('rep-inc-creditos').checked;
   const incPlatos = document.getElementById('rep-inc-platos').checked;
   const incDetalle = document.getElementById('rep-inc-detalle').checked;
@@ -3832,6 +3864,26 @@ async function generarReporte() {
     `;
   }
 
+  if (incGastos) {
+    html += `
+      <div class="section-label">Gastos de compras</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div class="dash-box"><div class="dash-val red">${moneda(datos.totalGastosCompras)}</div><div class="dash-lbl">Total gastado</div></div>
+        <div class="dash-box"><div class="dash-val gold">${moneda(datos.totalVentas - datos.totalGastosCompras)}</div><div class="dash-lbl">Margen real</div></div>
+      </div>
+    `;
+    if (datos.detalleGastos.length) {
+      html += datos.detalleGastos.map(g => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:0.8rem;">${fmtFecha(g.fecha)} · ${g.nombre}</span>
+          <span style="font-size:0.78rem;color:var(--text-dim);">${g.cantidad || ''} ${g.unidad || ''}</span>
+          <span style="font-family:var(--title);color:var(--red);">${moneda(g.monto)}</span>
+        </div>
+      `).join('');
+      html += '<div style="margin-bottom:14px;"></div>';
+    }
+  }
+
   if (incCreditos) {
     html += `
       <div class="section-label">Créditos</div>
@@ -3843,11 +3895,12 @@ async function generarReporte() {
   }
 
   if (incGanancia && Object.keys(datos.porDia).length > 0) {
-    html += `<div class="section-label">Ganancia por día</div>`;
-    html += Object.entries(datos.porDia).map(([fecha, d]) => `
+    html += `<div class="section-label">Resumen por día</div>`;
+    html += Object.entries(datos.porDia).sort().map(([fecha, d]) => `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);">
         <span style="font-size:0.82rem;">${fmtFecha(fecha)}</span>
-        <span style="font-size:0.82rem;color:var(--text-dim);">${d.cantidad} porc.</span>
+        <span style="font-size:0.75rem;color:var(--red);">-${moneda(d.gastos)}</span>
+        <span style="font-size:0.75rem;color:var(--text-dim);">${d.cantidad} porc.</span>
         <span style="font-family:var(--title);color:var(--gold);">${moneda(d.ventas - d.costo)}</span>
       </div>
     `).join('');
@@ -4110,6 +4163,68 @@ if (negocioId && rolActual) {
 }
 // Si no tiene código, la pantalla de activación ya está visible con paso-codigo
 
+
+// ══════════════════════════════════════════
+// PWA — MANIFEST + SERVICE WORKER INLINE
+// ══════════════════════════════════════════
+
+// Manifest dinámico — no necesita archivo externo
+(function() {
+  const manifest = {
+    name: "Paila — Gestión de Cocina",
+    short_name: "Paila",
+    description: "Sistema de gestión para negocios de cocina casera",
+    start_url: "./",
+    display: "standalone",
+    background_color: "#0c0c0c",
+    theme_color: "#0c0c0c",
+    orientation: "portrait",
+    icons: [
+      { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAACvklEQVR42u3cwY0CMRQFQQfg0AiUVIhqEDfOc/HYXUgdwD7/kjisGOMhnznnpVaj9PHgygHxiEpi8GDKQfA4ymLwGEoi8ADKQjC6sgiMrSQCAysLwajKIjCm0ggMqSwAIyqLwHjKIjCa0ggMpiwAYymLwEhKIzCQAJCKAIyjNALDKAvAKEojMIgAkIoAjKE0AkMIAAkACQAJAAkACQDpYABGEAASABIAW/R5v3QjBw8AAAIAAAEAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADgPACn/n0OHgAABAAAAgAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADgt0H9NigAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgGMGAAABAIAAAEAAAOBQBAAAAgAAAQCAAABAAAAgAAAQAAAIAAAEAAACAAABAAAAAAAAAAAAAAAAAAAA4DAAAEAAACAAABAAAAgAAAQAAAIAAAEAgAAAQAAAIAAAEAAACAAABAAAAgAAAQCAAABAAAAgAAAQAAAIAAAEAAACAAABAIAAAEAAACAAABAAAAgAAAQAAAIAAAEAgAAAQAAAIAAAEAAACAAABAAAOh6ABIAEgASABIB0C8DvYwgBIAEgASABIAEgAbDn//NorwAQAKsArEDg0bUawPj/+D6o5Pd/AAQABKofPwDKA4BA6eMHQAAYSGUAECh9/BAof/wAKA8AAqWPHwLljx8C5Y8fAOUBQKD08UOg/PGDoPzhQyDHD4EcPwhy+BDI8cMgRw+CHD4M2u/ov/2cH1GyhHkCAAAAAElFTkSuQmCC", sizes: "192x192", type: "image/png", purpose: "any maskable" },
+      { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAgAAAAIACAYAAAD0eNT6AAAMVElEQVR42u3WwQ2DQAwAQQq40iiUVqgqEf+8ABFxO0jTwGHZuyy+R78xxgeA31wJn2MOgGjwOfQACAOfgw+AIPA5+gCIAZ+jD4AY8Dn6AIgBRx8AxIDDDwBCwOEHACHg8AOAEHD4AUAIOPwA4Bo7/AAIAZ/jD4AI8Dn8AAgBn+MPgAjwOfwACAGf4w+ACHD8AUAEOPwAIAQcfwAQAY4/AIgAxx8ARIDjDwAiwOEHACHg+AOACHD8AUAEOP4AIAIcfwAQAQIAAASA4w8A3Qjw8wAgFgF+GgDEIsDPAoBYBPhJABCMAD8IAGIB4OcAQCwC/BQAiEWAnwEAwQjwIwAgFgB+AgDEIsDjA0AwAjw8AMQCwKMDQCwCPDYABCPAQwNALAA8MgAEI8ADA0AsADwuAAQjwMMCQCwAPCoABCPAgwJALAA8JgAEI8BDAkAsADwiAAQjwAMCQCwAPB4ABCPAwwGAAAAAZg8AjwYAwQjwYAAgAACA2QPAYwFAMAI8FAAIAABg9gDwSAAQjAAPBAACAACYPQA8DgAEI8DDAIAAAAAEAAAwXQB4FAAIRoAHAQABAAAIAABAAAAAAgAAeGEAeAwACEaAhwAAAQAACAAAQAAAAAIAABAAAIAAAAAEAAAgAAAAAQAACAAAQAAAAPcFgEcAAAEAAAgAAEAAAAACAAAQAACAAAAABAAAIAB4xr6twEV2CQIAAQACAAQAAgAEAAgABAAIABAACAAQACAAEAAgAEAAIABAAIAAQACAAAABgAAAAQACAAEAAgAEAAIABAAIAAQACAAQAAgAEAAgAAQAIABAAAgAQACAABAAgABAACAAAAGAAEAAAAIAAYAAAAEAAgABAAIABAACAAQACAAEAAgAEAAIABAAIAAQACAAQAAgAEAAgABAAIAAAAGAAAABAAIAAQACAAQAAgAEAAgABAAIABAAWN4gAEAACABAAIAAEACAAEAAIAAAAYAAQAAAAgABgAAAAQACAAEAAgAEAAIABAAIAAQACAAQAAgAEAAgABAAIABAACAAQACAAEAAgAAAAYAAAAEAAgABAAIABAACAAQACAAEAAgAEAAIABAAIAAEACAAQAAIAEAAIAAQAJY35soMIQCwqC1vzJUZQgBgUVveCAAQAFjUlre5MkMgALCoLW9zZYZAAGBRW97mygyBAMCitrzNlRkCAYBFbXmbKzMEAgCL2vI2V2YIBAAWteVtrswQCAAsasvbXJkhEABY1Ja3uTJDIACwqC1vc2WGQABgUVve5soMgQBAAFje5soMgQCwqAUA5soMgQCwqC1vzJUZQgB4CIva8sZcmSEEABa15Y25MkMIACxqyxsBAAIAi9ryxgyBAMCitrzNlRkCAYBFbXmbKzMEAgCL2vI2V2YIBAAWteVtrswQCAAsasvbXJkhEABY1Ja3uTJDIACwqC1vc2WGQABgUVve5soMgQDAora8zZUZAgGARW15myszBAIAAWB5myszBALAohYAmCszBALAora8MVdmCAHgESxqyxtzZYYQAFjUljfmygwhALCoLW/MlX+OAMCitrwRACAAsKgtb3NlhkAAYFFb3ubKDIEAwKK2vM2VGQIBgEVteZsrMwQCAIva8jZXZggEABa15W2uzBAIACxqy9tcmSEQAFjUlre5MkMgALCoLW9zZYZAAGBRW97mygyBAEAAWN7mygyBALCoBYA5MFdmCASARS0AMFdmCASARW15Y67MEAIAi9ryxlyZIQQAFrXljbkyQwgALGrLGwEAAgCL2vI2V2YIBAAWteVtrswQCAAsasvbXJkhEABY1Ja3uTJDIACwqC1vc2WGQABgUVve5soMgQDAora8zZUZAgGARW15myszBAIAi9ryNldmCAQAFrXlba7MEAgABIDlba7MEAgABIDlba7MEAgAi1oAYK7MEAgAi9ryxlyZIQQAFrXljbkyQwgALGpAACAAEAAgAEAAIABAAIAAQACAAAABgAAAAQACAAEAAgAEAAIABAAIAAQACAAQAAgAEAAgABAAIABAACAAQACAAEAAgAAAAYAAAAEAAgABAAIABIAAAAQACAABAAgABAACABAACAAEACAAEAAIABAAIAAQACAAQAAgAEAAgABAAIAAAAGAAAABAAIAAQACAAQAAgAEAAgABAAIABAACAAQACAAEAAgAEAAIABAAIAAQACAAAABgAAAAQACQAAAAgAEgAAABAACwEMIAEAAIAAQAIAAQAAgAEAAgABAAIAAAAGAAAABAAIAAQACAAQAAgAEAAgABAAIABAACAAQACAAEAAgAEAAIABAAIAAQACAAAABgAAAAQACAAEAAgAEAAIABAAIAAEACAAQAAIAEAAIAI8gACxvAAGAABAAAAIAASAAAAQAAkAAAAgABIAAABAACAABACAAEAACAEAAIAAEAIAAQAAIAAABgAAQAAACAAEgAAAEAAJAAAAIAASAAAAQAAgAAQAgABAAAgBAAAgAAWAOAASAABAAAAgAASAAAAQAAkAAAAgABIAAABAACAABACAAEAACAEAAIAAEAIAAQAAIAAABgAAQAAACAAEgAAAEAAJAAAAIAASAAAAQAAgAAQAgABAAAgBAACAABACAAEAACAAAAYAAEAAAAkAACAAABIAAEAAAAgABIAAABAACQAAACAAEgAAAEAAIAAEAIAAQAAIAQAAgAAQAgABAAAgAAAGAABAAAAIAASAAAAQAAkAAAAgABIAAABAACAABACAAEAACAEAAIAAEAIAAQAAIAAABIAAEAAACQAAIAAABgAAQAAACAAEgAAAEAAJAAAAIAASAAAAQAAgAAQAgABAAAgBAACAABACAAEAACAAAAYAAEAAAAgABIAAABAACQAAACAAEgAAAEAAIAAEAIAAQAAIAQAAgAAQAgAAQAAIAAAEgAAQAgADwEAJAAAAIAASAAAAQAAgAAQAgABAAAgBAACAABACAAEAACAAAAYAAEAAAAgABIAAABAACQAAACAAEgAAAEAAIAAEAIAAQAAIAQAAgAAQAgABAAAgAAAGAABAAAAJAAAgAAASAABAAAALAIwgAAQAgABAAAgBAACAABACAAEAACAAAAYAAEAAAAgABIAAABAACQAAACAAEgAAAEAAIAAEAIAAQAAIAQAAgAAQAgABAAAgAAAGAABAAAAIAASAAAAQAAkAAAAgAASAAzAGAABAAAgAAASAABACAAEAACAAAAYAAEAAAAgABIAAABAACQAAACAAEgAAAEAAIAAEAIAAQAAIAQAAgAAQAgABAAAgAAAGAABAAAAIAASAAAAQAAkAAAAgABIAAABAACAABACAAEAACAEAACAABAIAAEAACAEAAIAAEAIAAQAAIAAABgAAQAAACAAEgAAAEAAJAAAAIAASAAAAQAAgAAQAgABAAAgBAACAABACAAEAACAAAAYAAEAAAAgABIAAABAACQAAACAAEgAAAEAAIAAEAIAAEgAAAQAAIAAEAIAAQAAIAQAAgAAQAgABAAAgAAAGAABAAAAIAABAAAIAAAAAEAAAgAAAAAQAACAAAQAAAAAIAADgdAMfnIQBAAAAAAgAAEAAAgAAAAAQAACAAAAABAAAIAABAAAAAAgAAEAAAgAAAAC4GgAgAgODxFwAAIAAAAAEAAAgAAEAAAAAvDgARcM6+rQD8gRt00/EXAAIAQAAIAAQAgAAQAAgAAAEwbQCIAAEAIACCx18ACAAAASAAAIBKAIgAAAgefwEAAAIAAKgEgAgAgODxFwAAIAAAgEoAiAAACB5/AQAAAgAAqASACACA4PEXAAAQDQARAADB4y8AACAaACIAAILHXwAAQDQARAAABI+/AACAaACIAAAIHn8BAADRABABABA8/gIAAKIBIAIAIHj8RQAARI+/AACAaACIAAAIHn8RAADR4y8AACAaACIAAILHXwQAQPT4iwAAiB5/AQAA0QAQAQAQPP4iAACix18EAED0+IsAAIgefxEAANHjLwAAIBoAIgAAgsdfBABA9PiLAACIHn8RAADR4y8EACB6+EUAAISPvwgAwPEXAQYCAMdfBACA4y8EAMDhFwEA4PiLAABw/IUAADj8IgAAHH8hAAAOvwgAAMdfCACAwy8EAMDhFwIAOPw+IQCAw+8TAgA4/D4hAIDD7xMDADj6PjEAgKPvEwMAOPo+MQCAo+8TBAA4+D5hAIBDf+n7AtQLYiIJmATXAAAAAElFTkSuQmCC", sizes: "512x512", type: "image/png", purpose: "any maskable" }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type: 'application/manifest+json'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('link');
+  link.rel = 'manifest';
+  link.href = url;
+  document.head.appendChild(link);
+})();
+
+// Service Worker inline — no necesita archivo sw.js externo
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    const CACHE = "paila-v1";
+    self.addEventListener("install", e => {
+      self.skipWaiting();
+    });
+    self.addEventListener("activate", e => {
+      e.waitUntil(
+        caches.keys().then(keys =>
+          Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+        ).then(() => self.clients.claim())
+      );
+    });
+    self.addEventListener("fetch", e => {
+      if (e.request.method !== "GET") return;
+      e.respondWith(
+        fetch(e.request)
+          .then(res => {
+            if (res.ok) {
+              const clone = res.clone();
+              caches.open(CACHE).then(c => c.put(e.request, clone));
+            }
+            return res;
+          })
+          .catch(() => caches.match(e.request))
+      );
+    });
+  `;
+  const blob = new Blob([swCode], {type: 'text/javascript'});
+  const url = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(url).catch(() => {});
+}
 </script>
 </body>
 </html>
