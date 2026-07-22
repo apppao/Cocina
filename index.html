@@ -4257,11 +4257,13 @@ if (negocioId && rolActual) {
 
 // Manifest dinámico — no necesita archivo externo
 (function() {
+  const baseUrl = location.href.split('#')[0].split('?')[0];
   const manifest = {
     name: "Paila — Gestión de Cocina",
     short_name: "Paila",
     description: "Sistema de gestión para negocios de cocina casera",
-    start_url: "./",
+    start_url: baseUrl,
+    scope: baseUrl.substring(0, baseUrl.lastIndexOf('/') + 1),
     display: "standalone",
     background_color: "#0c0c0c",
     theme_color: "#0c0c0c",
