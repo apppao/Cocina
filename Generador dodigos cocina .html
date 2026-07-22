@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generador de Códigos — Loraine Cocina</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1a3a5c;--navy-light:#2a5a8c;
+  --gold:#b45309;--gold-bg:#fef3c7;--gold-text:#92400e;
+  --green:#166534;--green-bg:#dcfce7;--green-text:#166534;
+  --red:#991b1b;--red-bg:#fee2e2;--red-text:#991b1b;
+  --bg:#f1f5f9;--surface:#ffffff;--surface2:#f8fafc;
+  --border:#e2e8f0;--text:#1e293b;--text-muted:#64748b;
+  --radius:8px;--radius-lg:12px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+.nav{background:#92400e;padding:0 20px;height:56px;display:flex;align-items:center;justify-content:space-between}
+.nav-brand{color:#fff;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.status-dot{width:8px;height:8px;border-radius:50%;background:#fbbf24;flex-shrink:0;}
+.status-dot.online{background:#22c55e}
+.status-text{color:rgba(255,255,255,.75);font-size:12px}
+
+.main{max-width:900px;margin:0 auto;padding:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px}
+.card-title{font-size:13px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:14px}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px}
+.kpi-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;margin-bottom:6px}
+.kpi-value{font-size:22px;font-weight:700}
+
+.form-grid{display:grid;grid-template-columns:2fr 1fr auto;gap:10px;align-items:end}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-group label{font-size:12px;font-weight:500;color:var(--text-muted)}
+.form-group input{padding:9px 11px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;background:var(--surface);color:var(--text);outline:none;}
+.form-group input:focus{border-color:var(--gold);}
+.btn{padding:9px 18px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;}
+.btn-gold{background:#b45309;color:#fff;}
+.btn-gold:hover{background:#92400e;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-outline:hover{border-color:var(--gold);color:var(--gold);}
+.btn-danger{background:var(--red-bg);color:var(--red-text);border:1px solid #fca5a5;}
+.btn-sm{padding:5px 11px;font-size:12px;}
+
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:9px 10px;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border);text-transform:uppercase;background:var(--surface2)}
+td{padding:10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surface2);}
+.codigo-text{font-family:monospace;font-weight:700;font-size:15px;letter-spacing:1px;color:#92400e;}
+.badge{display:inline-flex;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+.badge-green{background:var(--green-bg);color:var(--green-text);}
+.badge-red{background:var(--red-bg);color:var(--red-text);}
+.empty{text-align:center;padding:40px;color:var(--text-muted);}
+.toast{position:fixed;bottom:20px;right:20px;padding:12px 18px;border-radius:8px;color:#fff;background:#166534;opacity:0;transition:opacity .3s;z-index:200;font-size:13px;font-weight:500;}
+.toast.show{opacity:1;}
+.toast.err{background:#991b1b;}
+.actions{display:flex;gap:6px;flex-wrap:wrap;}
+.prefix-hint{font-size:12px;color:var(--text-muted);margin-top:6px;}
+.prefix-hint strong{color:#92400e;}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-brand">🍽 Generador de Códigos — Loraine Cocina</div>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <span class="status-dot" id="status-dot"></span>
+    <span class="status-text" id="status-text">Conectando...</span>
+  </div>
+</nav>
+
+<div class="main">
+  <div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Códigos activos</div><div class="kpi-value" id="kpi-activos" style="color:#166534;">—</div></div>
+    <div class="kpi"><div class="kpi-label">Códigos desactivados</div><div class="kpi-value" id="kpi-inactivos" style="color:#991b1b;">—</div></div>
+    <div class="kpi"><div class="kpi-label">Total generados</div><div class="kpi-value" id="kpi-total" style="color:#92400e;">—</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🍽 Generar nuevo código — Loraine Cocina</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nombre del negocio / cliente</label>
+        <input type="text" id="nuevo-cliente" placeholder="Ej: Cocina de María">
+      </div>
+      <div class="form-group">
+        <label>Notas (opcional)</label>
+        <input type="text" id="nuevo-notas" placeholder="Tel, plan, etc.">
+      </div>
+      <button class="btn btn-gold" onclick="generarCodigo()">+ Generar código</button>
+    </div>
+    <div class="prefix-hint">Prefijo del código: <strong>COC-XXXX-XXXX</strong></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Códigos generados</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Negocio / Cliente</th>
+          <th>Notas</th>
+          <th>Generado</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tabla-codigos">
+        <tr><td colspan="6" class="empty">Conectando...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+// FIREBASE CONFIG — Loraine Cocina (mismo proyecto)
+// ══════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyAXOXGdq68XJ31e4ATs3ZnY1ft3gCGIav4",
+  authDomain: "loraine-cocina.firebaseapp.com",
+  databaseURL: "https://loraine-cocina-default-rtdb.firebaseio.com",
+  projectId: "loraine-cocina",
+  storageBucket: "loraine-cocina.firebasestorage.app",
+  messagingSenderId: "573058387330",
+  appId: "1:573058387330:web:feee61103d8d589f17939b"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const codigosRef = db.ref('codigos_activacion');
+
+// ══════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════
+function toast(msg, isErr = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+function generarCodigoTexto() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let p1 = '', p2 = '';
+  for (let i = 0; i < 4; i++) p1 += chars[Math.floor(Math.random() * chars.length)];
+  for (let i = 0; i < 4; i++) p2 += chars[Math.floor(Math.random() * chars.length)];
+  return `COC-${p1}-${p2}`;
+}
+
+function formatFecha(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('es-DO', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+// ══════════════════════════════════════════
+// GENERAR CÓDIGO
+// ══════════════════════════════════════════
+async function generarCodigo() {
+  const cliente = document.getElementById('nuevo-cliente').value.trim();
+  const notas = document.getElementById('nuevo-notas').value.trim();
+  if (!cliente) { toast('Ingresa el nombre del negocio', true); return; }
+
+  const codigo = generarCodigoTexto();
+
+  try {
+    await db.ref('codigos_activacion/' + codigo).set({
+      codigo,
+      app: 'cocina',
+      cliente,
+      notas,
+      activo: true,
+      fechaCreacion: new Date().toISOString(),
+      fechaDesactivacion: null
+    });
+    document.getElementById('nuevo-cliente').value = '';
+    document.getElementById('nuevo-notas').value = '';
+    toast('✅ Código generado: ' + codigo);
+  } catch(e) {
+    toast('Error: ' + e.message, true);
+    console.error(e);
+  }
+}
+
+async function toggleCodigo(codigo, estadoActual) {
+  try {
+    await db.ref('codigos_activacion/' + codigo).update({
+      activo: !estadoActual,
+      fechaDesactivacion: estadoActual ? new Date().toISOString() : null
+    });
+    toast(estadoActual ? 'Código desactivado' : 'Código reactivado');
+  } catch(e) {
+    toast('Error: ' + e.message, true);
+  }
+}
+
+async function borrarCodigo(codigo) {
+  if (!confirm(`¿Borrar el código ${codigo} permanentemente?\n\nEsta acción no se puede deshacer.`)) return;
+  try {
+    await db.ref('codigos_activacion/' + codigo).remove();
+    toast('Código eliminado');
+  } catch(e) {
+    toast('Error: ' + e.message, true);
+  }
+}
+
+function copiarCodigo(codigo) {
+  navigator.clipboard.writeText(codigo)
+    .then(() => toast('Copiado: ' + codigo))
+    .catch(() => {
+      // Fallback para navegadores sin clipboard API
+      const el = document.createElement('textarea');
+      el.value = codigo;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      toast('Copiado: ' + codigo);
+    });
+}
+
+// ══════════════════════════════════════════
+// RENDER TABLA
+// ══════════════════════════════════════════
+function renderTabla(codigos) {
+  const tbody = document.getElementById('tabla-codigos');
+  const lista = Object.entries(codigos || {})
+    .sort((a, b) => (b[1].fechaCreacion || '') .localeCompare(a[1].fechaCreacion || ''));
+
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">No hay códigos generados todavía.</td></tr>';
+    document.getElementById('kpi-activos').textContent = '0';
+    document.getElementById('kpi-inactivos').textContent = '0';
+    document.getElementById('kpi-total').textContent = '0';
+    return;
+  }
+
+  tbody.innerHTML = lista.map(([codigo, d]) => `
+    <tr>
+      <td><span class="codigo-text">${d.codigo || codigo}</span></td>
+      <td><strong>${d.cliente || '—'}</strong></td>
+      <td style="color:var(--text-muted);">${d.notas || '—'}</td>
+      <td>${formatFecha(d.fechaCreacion)}</td>
+      <td><span class="badge ${d.activo ? 'badge-green' : 'badge-red'}">${d.activo ? 'Activo' : 'Desactivado'}</span></td>
+      <td>
+        <div class="actions">
+          <button class="btn btn-outline btn-sm" onclick="copiarCodigo('${d.codigo || codigo}')">Copiar</button>
+          <button class="btn btn-outline btn-sm" onclick="toggleCodigo('${codigo}',${d.activo})">${d.activo ? 'Desactivar' : 'Reactivar'}</button>
+          <button class="btn btn-danger btn-sm" onclick="borrarCodigo('${codigo}')">Borrar</button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  const activos = lista.filter(([,d]) => d.activo).length;
+  document.getElementById('kpi-activos').textContent = activos;
+  document.getElementById('kpi-inactivos').textContent = lista.length - activos;
+  document.getElementById('kpi-total').textContent = lista.length;
+}
+
+// ══════════════════════════════════════════
+// LISTENER EN TIEMPO REAL
+// ══════════════════════════════════════════
+codigosRef.on('value', snap => {
+  renderTabla(snap.val());
+}, error => {
+  document.getElementById('status-text').textContent = 'Error de conexión';
+  document.getElementById('status-dot').classList.remove('online');
+  toast('Error de conexión: ' + error.message, true);
+});
+
+// Estado de conexión
+db.ref('.info/connected').on('value', snap => {
+  const online = snap.val();
+  document.getElementById('status-dot').className = 'status-dot' + (online ? ' online' : '');
+  document.getElementById('status-text').textContent = online ? 'Conectado — sincronizando en tiempo real' : 'Sin conexión';
+});
+
+// Enter para generar
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('nuevo-cliente').addEventListener('keydown', e => {
+    if (e.key === 'Enter') generarCodigo();
+  });
+});
+</script>
+</body>
+</html>
